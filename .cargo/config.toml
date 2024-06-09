@@ -1,0 +1,7 @@
+[build]
+rustflags = ["-Zlocation-detail=none"]
+target = "x86_64-pc-windows-msvc"
+
+[unstable]
+# build-std = ["core", "alloc"]
+# build-std-features = ["panic_immediate_abort"]
