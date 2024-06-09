@@ -54,7 +54,11 @@ fn _main() -> Result<(), Box<dyn Error>> {
 
 #[no_mangle]
 extern "C" fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    _main();
-
-    0
+    match _main() {
+        Ok(()) => 0,
+        Err(e) => {
+            unsafe { libc::perror(e.to_string().as_ptr().cast()) };
+            1
+        }
+    }
 }
