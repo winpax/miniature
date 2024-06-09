@@ -1,32 +1,12 @@
 #![warn(clippy::all, clippy::pedantic)]
-#![no_std]
 #![no_main]
 #![feature(error_generic_member_access)]
 #![feature(error_in_core)]
 #![feature(try_trait_v2)]
 
-pub mod file;
-pub mod wide;
-
 extern crate alloc;
 
-use core::mem::MaybeUninit;
-
-use alloc::borrow::ToOwned;
-use file::File;
-use libc::wchar_t;
-use widestring::{WideCStr, WideCString};
-use windows::{
-    core::HSTRING,
-    Win32::{
-        Foundation::{CloseHandle, GENERIC_READ},
-        Storage::FileSystem::{
-            CreateFileW, ACCESS_DELETE, ACCESS_READ, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ,
-            OPEN_EXISTING,
-        },
-        System::LibraryLoader::GetModuleFileNameW,
-    },
-};
+use std::{error::Error, fs::File, io::Read, path::PathBuf};
 
 fn ctrl_handler(ctrl_type: u32) -> bool {
     use windows::Win32::System::Console::{
@@ -45,38 +25,31 @@ fn ctrl_handler(ctrl_type: u32) -> bool {
 
 const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
 
-fn _main() {
-    let filename = unsafe {
-        let mut filename: [wchar_t; MAX_PATH] = {
-            let uninit: [MaybeUninit<u16>; MAX_PATH] = MaybeUninit::uninit().assume_init();
-            core::mem::transmute(uninit)
-        };
+fn _main() -> Result<(), Box<dyn Error>> {
+    #[cfg(not(debug_assertions))]
+    let filename = {
+        let current_exe = std::env::current_exe().unwrap();
 
-        let filename_size = GetModuleFileNameW(None, filename.as_mut()) as usize;
-
-        filename[filename_size - 3] = wchar_t::from(b's');
-        filename[filename_size - 2] = wchar_t::from(b'h');
-        filename[filename_size - 1] = wchar_t::from(b'i');
-        filename[filename_size] = wchar_t::from(b'm');
-        filename[filename_size + 1] = wchar_t::from(b'\0');
-
-        WideCStr::from_ptr(filename.as_ptr(), filename_size + 1)
-            .unwrap()
-            .to_owned()
+        current_exe.with_extension("shim")
     };
 
     #[cfg(debug_assertions)]
-    let filename = WideCString::from_str("test.shim").unwrap();
+    let filename = PathBuf::from("test.shim");
 
-    let file = unsafe { File::open(&filename) }.unwrap();
+    let mut file = File::open(&filename)?;
 
-    let skinny_filename = filename.to_string().unwrap();
-    let shim_string = file.read_to_string().unwrap();
+    let skinny_filename = filename.display().to_string();
+
+    let mut shim_string = String::new();
+
+    file.read_to_string(&mut shim_string)?;
 
     unsafe {
         libc::printf(skinny_filename.as_ptr().cast());
         libc::printf(shim_string.as_ptr().cast());
     }
+
+    Ok(())
 }
 
 #[no_mangle]
