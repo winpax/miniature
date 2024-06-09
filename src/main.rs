@@ -1,12 +1,15 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![no_main]
-#![feature(error_generic_member_access)]
-#![feature(error_in_core)]
-#![feature(try_trait_v2)]
+#![feature(let_chains)]
 
 extern crate alloc;
 
-use std::{error::Error, fs::File, io::Read, path::PathBuf};
+use std::{
+    error::Error,
+    fs::File,
+    io::{BufRead, BufReader, Read},
+    path::PathBuf,
+};
 
 fn ctrl_handler(ctrl_type: u32) -> bool {
     use windows::Win32::System::Console::{
@@ -23,8 +26,6 @@ fn ctrl_handler(ctrl_type: u32) -> bool {
     )
 }
 
-const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
-
 fn _main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(debug_assertions))]
     let filename = {
@@ -36,17 +37,81 @@ fn _main() -> Result<(), Box<dyn Error>> {
     #[cfg(debug_assertions)]
     let filename = PathBuf::from("test.shim");
 
-    let mut file = File::open(&filename)?;
+    let file = File::open(&filename)?;
 
-    let skinny_filename = filename.display().to_string();
+    let mut command_length = 256;
+    let mut path_length = 0;
+    let mut args_length = 0;
 
-    let mut shim_string = String::new();
+    for line in BufReader::new(file).lines() {
+        let line = line?;
 
-    file.read_to_string(&mut shim_string)?;
+        if &line[4..6] == " = " {
+            continue;
+        }
 
+        let linelen = line.len();
+        let mut len =
+            linelen - 8 + usize::from(line.chars().nth(linelen - 1).is_some_and(|c| c != '\n'));
+
+        dbg!(len);
+
+        if &line[0..4] == "path" {
+            let add_quotes = if let Some(quote) = line.chars().nth(7)
+                && quote == '"'
+            {
+                let mut add_quotes = false;
+
+                for i in 7..len {
+                    if line.chars().nth(i) == Some(' ') {
+                        add_quotes = true;
+                        break;
+                    }
+                }
+
+                add_quotes
+            } else {
+                false
+            };
+
+            if add_quotes {
+                len += 2;
+            }
+
+            let mut path = String::with_capacity(len + 1);
+
+            if add_quotes {
+                path.push('"');
+            }
+
+            path.push_str(&line[7..(if add_quotes { len - 1 } else { len })]);
+
+            if add_quotes {
+                path.push('"');
+            }
+
+            command_length += len;
+            path_length += len;
+
+            println!("{path}");
+
+            continue;
+        }
+
+        if &line[0..4] == "args" {
+            let args = line[7..].to_string();
+
+            command_length += args.len() + 1;
+            args_length = args.len() + 1;
+        }
+
+        unsafe { libc::printf(line.as_ptr().cast()) };
+    }
+
+    #[cfg(debug_assertions)]
     unsafe {
+        let skinny_filename = filename.display().to_string();
         libc::printf(skinny_filename.as_ptr().cast());
-        libc::printf(shim_string.as_ptr().cast());
     }
 
     Ok(())
