@@ -60,10 +60,12 @@ impl Job {
             } else {
                 let mut output = U16String::from("Shim: Could not create process with command ");
                 output.push(command);
+                output.push_char('.');
+                output.push_char('\n');
 
-                super::log::log_error(output)?;
-                // TODO: Better error handling
-                panic!("Failed to create process");
+                super::error::log_error(output)?;
+                super::error::set_exit_code(1);
+                super::error::exit_immediately();
             }
         } else {
             AssignProcessToJobObject(self.0, process_info.hProcess)?;
@@ -71,7 +73,7 @@ impl Job {
         }
 
         if SetConsoleCtrlHandler(Some(super::ctrl_handler), true).is_err() {
-            super::log::log_error(U16String::from(
+            super::error::log_error(U16String::from(
                 "Could not set control handler; Ctrl-C behaviour may be invalid.\n",
             ))?;
         }

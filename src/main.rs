@@ -7,12 +7,13 @@ extern crate alloc;
 
 use core::ffi::c_int;
 
+use error::set_exit_code;
 use libc::wchar_t;
 use widestring::{U16CStr, WideString};
 use windows::{core::BOOL, Win32::System::Environment::GetCommandLineW};
 
+mod error;
 mod job;
-mod log;
 
 const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
 
@@ -100,7 +101,7 @@ unsafe fn calculate_command() -> windows::core::Result<WideString> {
     Ok(command)
 }
 
-unsafe fn start() -> windows::core::Result<u32> {
+unsafe fn start() -> windows::core::Result<()> {
     let command = calculate_command()?;
 
     if unsafe { is_windows_app(get_path().as_ptr()) }.as_bool() {
@@ -111,13 +112,15 @@ unsafe fn start() -> windows::core::Result<u32> {
     let running_job = child.start(command.as_ustr())?;
     let exit_code = running_job.wait()?;
 
-    Ok(exit_code)
+    set_exit_code(exit_code);
+
+    Ok(())
 }
 
 #[no_mangle]
 extern "C" fn main(_argc: isize, _argv: *const *const u8) -> u32 {
     match unsafe { start() } {
-        Ok(exit_code) => exit_code,
+        Ok(()) => error::get_exit_code(),
         Err(e) => {
             unsafe { libc::perror(e.message().as_ptr().cast()) };
             1
