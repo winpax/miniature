@@ -31,18 +31,15 @@ impl Job {
     }
 
     pub unsafe fn start(self, command: &U16Str) -> windows::core::Result<RunningJob> {
-        use windows::Win32::{
-            Foundation::GetLastError,
-            System::{
-                JobObjects::AssignProcessToJobObject,
-                Threading::{CreateProcessW, ResumeThread, CREATE_SUSPENDED, STARTUPINFOW},
-            },
+        use windows::Win32::System::{
+            JobObjects::AssignProcessToJobObject,
+            Threading::{CreateProcessW, ResumeThread, CREATE_SUSPENDED, STARTUPINFOW},
         };
 
         let startup_info = STARTUPINFOW::default();
         let mut process_info = PROCESS_INFORMATION::default();
 
-        if let Err(_err) = CreateProcessW(
+        if let Err(err) = CreateProcessW(
             None,
             Some(PWSTR::from_raw(command.as_ptr().cast_mut())),
             None,
@@ -54,13 +51,15 @@ impl Job {
             &startup_info,
             &mut process_info,
         ) {
-            let error = GetLastError();
-            if error == ERROR_ELEVATION_REQUIRED {
+            if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
                 todo!("Attempt to run as administrator")
             } else {
                 let mut output = U16String::from("Shim: Could not create process with command ");
                 output.push(command);
                 output.push_char('.');
+                output.push_char('\n');
+                output.push_str("\t\t- Failed with error: ");
+                output.push_str(err.message());
                 output.push_char('\n');
 
                 super::error::log_error(output)?;
