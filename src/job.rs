@@ -1,11 +1,13 @@
 use widestring::{U16Str, U16String};
 use windows::{
-    core::PWSTR,
+    core::{PCWSTR, PWSTR},
     Win32::{
         Foundation::{ERROR_ELEVATION_REQUIRED, HANDLE},
         System::{Console::SetConsoleCtrlHandler, Threading::PROCESS_INFORMATION},
     },
 };
+
+use crate::{get_args, get_path};
 
 pub struct Job(HANDLE);
 
@@ -52,7 +54,33 @@ impl Job {
             &mut process_info,
         ) {
             if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
-                todo!("Attempt to run as administrator")
+                use windows::Win32::UI::{
+                    Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW},
+                    WindowsAndMessaging::SW_SHOW,
+                };
+
+                let mut execution_info = SHELLEXECUTEINFOW {
+                    #[allow(clippy::cast_possible_truncation)]
+                    cbSize: core::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+                    fMask: SEE_MASK_NOCLOSEPROCESS,
+                    lpFile: PCWSTR::from_raw(get_path().as_ptr()),
+                    lpParameters: PCWSTR::from_raw(get_args().as_ptr()),
+                    nShow: SW_SHOW.0,
+                    ..Default::default()
+                };
+
+                if let Err(err) = ShellExecuteExW(&mut execution_info) {
+                    let mut output = U16String::from("Shim: Unable to create elevated process.\n");
+                    output.push_str("\t\t- Failed with error: ");
+                    output.push_str(err.message());
+                    output.push_char('\n');
+
+                    super::error::log_error(output)?;
+                    super::error::set_exit_code(1);
+                    super::error::exit_immediately();
+                }
+
+                process_info.hProcess = execution_info.hProcess;
             } else {
                 let mut output = U16String::from("Shim: Could not create process with command ");
                 output.push(command);
