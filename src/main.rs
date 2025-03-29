@@ -4,15 +4,15 @@
 
 extern crate alloc;
 
-use std::{
-    error::Error,
-    ffi::OsString,
-    fs::File,
-    io::{BufRead, BufReader, Read},
-    path::PathBuf,
-};
+use core::ffi::c_int;
+use std::error::Error;
 
 use libc::wchar_t;
+use widestring::{U16CStr, WideString};
+use windows::{core::BOOL, Win32::System::Environment::GetCommandLineW};
+
+mod job;
+mod log;
 
 const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
 
@@ -41,31 +41,83 @@ pub static ARGS: [wchar_t; MAX_PATH] = [0; MAX_PATH];
 
 #[no_mangle]
 #[link_section = ".shim_command"]
-pub static COMMAND: [wchar_t; 256] = [0; 256];
+pub static COMMAND: [wchar_t; MAX_PATH] = [0; MAX_PATH];
 
-fn ctrl_handler(ctrl_type: u32) -> bool {
+unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     use windows::Win32::System::Console::{
         CTRL_BREAK_EVENT, CTRL_CLOSE_EVENT, CTRL_C_EVENT, CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT,
     };
 
-    matches!(
+    let matched_ctrl = matches!(
         ctrl_type,
         CTRL_C_EVENT
             | CTRL_CLOSE_EVENT
             | CTRL_LOGOFF_EVENT
             | CTRL_BREAK_EVENT
             | CTRL_SHUTDOWN_EVENT
-    )
+    );
+
+    BOOL::from(matched_ctrl)
 }
 
-fn _main() -> Result<(), Box<dyn Error>> {
-    Ok(())
+extern "C" {
+    fn compute_program_length(commandline: *const wchar_t) -> c_int;
+    fn is_windows_app(path: *const wchar_t) -> BOOL;
+}
+
+fn get_path() -> &'static U16CStr {
+    U16CStr::from_slice_truncate(&PATH).unwrap()
+}
+
+fn get_args() -> &'static U16CStr {
+    U16CStr::from_slice_truncate(&ARGS).unwrap()
+}
+
+unsafe fn calculate_command() -> Result<WideString, Box<dyn Error>> {
+    let mut command_length: usize = 256;
+    let path = get_path();
+    let args = get_args();
+
+    command_length += path.len();
+    command_length += args.len() + 1;
+
+    let commandline = unsafe { GetCommandLineW() };
+
+    let program_length = usize::try_from(unsafe { compute_program_length(commandline.as_ptr()) })?;
+
+    let given_command = &unsafe { commandline.as_wide() }[program_length..];
+
+    command_length += given_command.len();
+
+    let mut command = WideString::with_capacity(command_length);
+    command.push(path);
+    command.push_char(' ');
+    command.push(args);
+    command.push_char(' ');
+    command.push_slice(given_command);
+    command.push_char(' ');
+
+    Ok(command)
+}
+
+unsafe fn start() -> Result<u32, Box<dyn Error>> {
+    let command = calculate_command()?;
+
+    if unsafe { is_windows_app(get_path().as_ptr()) }.as_bool() {
+        windows::Win32::System::Console::FreeConsole()?;
+    }
+
+    let child = job::Job::new()?;
+    let running_job = child.start(command.as_ustr())?;
+    let exit_code = running_job.wait()?;
+
+    Ok(exit_code)
 }
 
 #[no_mangle]
-extern "C" fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    match _main() {
-        Ok(()) => 0,
+extern "C" fn main(_argc: isize, _argv: *const *const u8) -> u32 {
+    match unsafe { start() } {
+        Ok(exit_code) => exit_code,
         Err(e) => {
             unsafe { libc::perror(e.to_string().as_ptr().cast()) };
             1
