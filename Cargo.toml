@@ -32,6 +32,3 @@ windows = { version = "0.61", features = [
     "Win32_System_Environment",
     "Win32_System_LibraryLoader",
 ] }
-
-[build-dependencies]
-cc = "1.2.17"

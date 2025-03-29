@@ -1,11 +1,10 @@
 #![warn(clippy::all, clippy::pedantic)]
+#![allow(clippy::cast_possible_truncation)]
 #![no_main]
 #![no_std]
 #![feature(let_chains)]
 
 extern crate alloc;
-
-use core::ffi::c_int;
 
 use error::set_exit_code;
 use libc::wchar_t;
@@ -13,6 +12,7 @@ use widestring::{U16CStr, WideString};
 use windows::{core::BOOL, Win32::System::Environment::GetCommandLineW};
 
 mod error;
+mod interop;
 mod job;
 
 const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
@@ -61,11 +61,6 @@ unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     BOOL::from(matched_ctrl)
 }
 
-extern "C" {
-    fn compute_program_length(commandline: *const wchar_t) -> c_int;
-    fn is_windows_app(path: *const wchar_t) -> BOOL;
-}
-
 fn get_path() -> &'static U16CStr {
     U16CStr::from_slice_truncate(&PATH).unwrap()
 }
@@ -74,7 +69,7 @@ fn get_args() -> &'static U16CStr {
     U16CStr::from_slice_truncate(&ARGS).unwrap()
 }
 
-unsafe fn calculate_command() -> windows::core::Result<WideString> {
+unsafe fn calculate_command() -> WideString {
     let mut command_length: usize = 256;
     let path = get_path();
     let args = get_args();
@@ -84,7 +79,7 @@ unsafe fn calculate_command() -> windows::core::Result<WideString> {
 
     let commandline = unsafe { GetCommandLineW() };
 
-    let program_length = usize::try_from(unsafe { compute_program_length(commandline.as_ptr()) })?;
+    let program_length = unsafe { interop::rcompute_program_length(commandline.as_wide()) };
 
     let given_command = &unsafe { commandline.as_wide() }[program_length..];
 
@@ -98,13 +93,13 @@ unsafe fn calculate_command() -> windows::core::Result<WideString> {
     command.push_slice(given_command);
     command.push_char(' ');
 
-    Ok(command)
+    command
 }
 
 unsafe fn start() -> windows::core::Result<()> {
-    let command = calculate_command()?;
+    let command = calculate_command();
 
-    if unsafe { is_windows_app(get_path().as_ptr()) }.as_bool() {
+    if unsafe { interop::ris_windows_app(get_path()) } {
         windows::Win32::System::Console::FreeConsole()?;
     }
 
