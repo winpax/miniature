@@ -1,11 +1,11 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![no_main]
+#![no_std]
 #![feature(let_chains)]
 
 extern crate alloc;
 
 use core::ffi::c_int;
-use std::error::Error;
 
 use libc::wchar_t;
 use widestring::{U16CStr, WideString};
@@ -73,7 +73,7 @@ fn get_args() -> &'static U16CStr {
     U16CStr::from_slice_truncate(&ARGS).unwrap()
 }
 
-unsafe fn calculate_command() -> Result<WideString, Box<dyn Error>> {
+unsafe fn calculate_command() -> windows::core::Result<WideString> {
     let mut command_length: usize = 256;
     let path = get_path();
     let args = get_args();
@@ -100,7 +100,7 @@ unsafe fn calculate_command() -> Result<WideString, Box<dyn Error>> {
     Ok(command)
 }
 
-unsafe fn start() -> Result<u32, Box<dyn Error>> {
+unsafe fn start() -> windows::core::Result<u32> {
     let command = calculate_command()?;
 
     if unsafe { is_windows_app(get_path().as_ptr()) }.as_bool() {
@@ -119,7 +119,7 @@ extern "C" fn main(_argc: isize, _argv: *const *const u8) -> u32 {
     match unsafe { start() } {
         Ok(exit_code) => exit_code,
         Err(e) => {
-            unsafe { libc::perror(e.to_string().as_ptr().cast()) };
+            unsafe { libc::perror(e.message().as_ptr().cast()) };
             1
         }
     }

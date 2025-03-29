@@ -24,7 +24,7 @@ impl Job {
             job_handle,
             JobObjects::JobObjectExtendedLimitInformation,
             core::ptr::from_ref(&job_info).cast(),
-            std::mem::size_of_val(&job_info) as u32,
+            core::mem::size_of_val(&job_info) as u32,
         )?;
 
         Ok(Self(job_handle))
