@@ -1,7 +1,5 @@
 //! Both functions in this file are ported almost directly from the original <https://github.com/71/scoop-better-shimexe/blob/master/shim.c>
 
-use core::ffi::c_int;
-
 use libc::wchar_t;
 use widestring::U16CStr;
 use windows::core::PCWSTR;
