@@ -1,87 +1,129 @@
 #![warn(clippy::all, clippy::pedantic)]
-#![no_std]
 #![no_main]
-#![feature(error_generic_member_access)]
-#![feature(error_in_core)]
-#![feature(try_trait_v2)]
-
-pub mod file;
-pub mod wide;
+#![no_std]
+#![feature(let_chains)]
 
 extern crate alloc;
 
-use core::mem::MaybeUninit;
+use core::ffi::c_int;
 
-use alloc::borrow::ToOwned;
-use file::File;
+use error::set_exit_code;
 use libc::wchar_t;
-use widestring::{WideCStr, WideCString};
-use windows::{
-    core::HSTRING,
-    Win32::{
-        Foundation::{CloseHandle, GENERIC_READ},
-        Storage::FileSystem::{
-            CreateFileW, ACCESS_DELETE, ACCESS_READ, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ,
-            OPEN_EXISTING,
-        },
-        System::LibraryLoader::GetModuleFileNameW,
-    },
-};
+use widestring::{U16CStr, WideString};
+use windows::{core::BOOL, Win32::System::Environment::GetCommandLineW};
 
-fn ctrl_handler(ctrl_type: u32) -> bool {
+mod error;
+mod job;
+
+const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
+
+#[cfg(not(debug_assertions))]
+#[no_mangle]
+#[link_section = ".shim_path"]
+pub static PATH: [wchar_t; MAX_PATH] = [0; MAX_PATH];
+
+#[cfg(debug_assertions)]
+pub static PATH: [wchar_t; MAX_PATH] = [
+    67, 58, 92, 117, 115, 101, 114, 115, 92, 106, 117, 108, 105, 101, 92, 115, 99, 111, 111, 112,
+    92, 97, 112, 112, 115, 92, 115, 102, 115, 117, 92, 99, 117, 114, 114, 101, 110, 116, 92, 115,
+    102, 115, 117, 46, 101, 120, 101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0,
+];
+
+#[no_mangle]
+#[link_section = ".shim_args"]
+pub static ARGS: [wchar_t; MAX_PATH] = [0; MAX_PATH];
+
+#[no_mangle]
+#[link_section = ".shim_command"]
+pub static COMMAND: [wchar_t; MAX_PATH] = [0; MAX_PATH];
+
+unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     use windows::Win32::System::Console::{
         CTRL_BREAK_EVENT, CTRL_CLOSE_EVENT, CTRL_C_EVENT, CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT,
     };
 
-    matches!(
+    let matched_ctrl = matches!(
         ctrl_type,
         CTRL_C_EVENT
             | CTRL_CLOSE_EVENT
             | CTRL_LOGOFF_EVENT
             | CTRL_BREAK_EVENT
             | CTRL_SHUTDOWN_EVENT
-    )
+    );
+
+    BOOL::from(matched_ctrl)
 }
 
-const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
+extern "C" {
+    fn compute_program_length(commandline: *const wchar_t) -> c_int;
+    fn is_windows_app(path: *const wchar_t) -> BOOL;
+}
 
-fn _main() {
-    let filename = unsafe {
-        let mut filename: [wchar_t; MAX_PATH] = {
-            let uninit: [MaybeUninit<u16>; MAX_PATH] = MaybeUninit::uninit().assume_init();
-            core::mem::transmute(uninit)
-        };
+fn get_path() -> &'static U16CStr {
+    U16CStr::from_slice_truncate(&PATH).unwrap()
+}
 
-        let filename_size = GetModuleFileNameW(None, filename.as_mut()) as usize;
+fn get_args() -> &'static U16CStr {
+    U16CStr::from_slice_truncate(&ARGS).unwrap()
+}
 
-        filename[filename_size - 3] = wchar_t::from(b's');
-        filename[filename_size - 2] = wchar_t::from(b'h');
-        filename[filename_size - 1] = wchar_t::from(b'i');
-        filename[filename_size] = wchar_t::from(b'm');
-        filename[filename_size + 1] = wchar_t::from(b'\0');
+unsafe fn calculate_command() -> windows::core::Result<WideString> {
+    let mut command_length: usize = 256;
+    let path = get_path();
+    let args = get_args();
 
-        WideCStr::from_ptr(filename.as_ptr(), filename_size + 1)
-            .unwrap()
-            .to_owned()
-    };
+    command_length += path.len();
+    command_length += args.len() + 1;
 
-    #[cfg(debug_assertions)]
-    let filename = WideCString::from_str("test.shim").unwrap();
+    let commandline = unsafe { GetCommandLineW() };
 
-    let file = unsafe { File::open(&filename) }.unwrap();
+    let program_length = usize::try_from(unsafe { compute_program_length(commandline.as_ptr()) })?;
 
-    let skinny_filename = filename.to_string().unwrap();
-    let shim_string = file.read_to_string().unwrap();
+    let given_command = &unsafe { commandline.as_wide() }[program_length..];
 
-    unsafe {
-        libc::printf(skinny_filename.as_ptr().cast());
-        libc::printf(shim_string.as_ptr().cast());
+    command_length += given_command.len();
+
+    let mut command = WideString::with_capacity(command_length);
+    command.push(path);
+    command.push_char(' ');
+    command.push(args);
+    command.push_char(' ');
+    command.push_slice(given_command);
+    command.push_char(' ');
+
+    Ok(command)
+}
+
+unsafe fn start() -> windows::core::Result<()> {
+    let command = calculate_command()?;
+
+    if unsafe { is_windows_app(get_path().as_ptr()) }.as_bool() {
+        windows::Win32::System::Console::FreeConsole()?;
     }
+
+    let child = job::Job::new()?;
+    let running_job = child.start(command.as_ustr())?;
+    let exit_code = running_job.wait()?;
+
+    set_exit_code(exit_code);
+
+    Ok(())
 }
 
 #[no_mangle]
-extern "C" fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    _main();
-
-    0
+extern "C" fn main(_argc: isize, _argv: *const *const u8) -> u32 {
+    match unsafe { start() } {
+        Ok(()) => error::get_exit_code(),
+        Err(e) => {
+            unsafe { libc::perror(e.message().as_ptr().cast()) };
+            1
+        }
+    }
 }
