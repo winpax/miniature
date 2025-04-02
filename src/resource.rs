@@ -1,13 +1,16 @@
 mod ids;
 
-use widestring::U16CString;
-use windows::{core::PWSTR, Win32::UI::WindowsAndMessaging::LoadStringW};
+use widestring::{U16CString, WideString};
+use windows::{
+    core::PWSTR,
+    Win32::{System::Environment::GetCommandLineW, UI::WindowsAndMessaging::LoadStringW},
+};
 
 use crate::MAX_PATH;
 
 pub struct ChildResource {
-    path: U16CString,
-    args: U16CString,
+    pub path: U16CString,
+    pub args: U16CString,
 }
 
 impl ChildResource {
@@ -16,6 +19,34 @@ impl ChildResource {
         let args = load_resource_string(ids::IDS_ARGS);
 
         Self { path, args }
+    }
+
+    pub fn calculate_command(&self) -> WideString {
+        let mut command_length: usize = 256;
+        let path = self.path.as_ustr();
+        let args = self.args.as_ustr();
+
+        command_length += path.len();
+        command_length += args.len() + 1;
+
+        let commandline = unsafe { GetCommandLineW() };
+
+        let program_length =
+            unsafe { crate::interop::rcompute_program_length(commandline.as_wide()) };
+
+        let given_command = &unsafe { commandline.as_wide() }[program_length..];
+
+        command_length += given_command.len();
+
+        let mut command = WideString::with_capacity(command_length);
+        command.push(path);
+        command.push_char(' ');
+        command.push(args);
+        command.push_char(' ');
+        command.push_slice(given_command);
+        command.push_char(' ');
+
+        command
     }
 }
 

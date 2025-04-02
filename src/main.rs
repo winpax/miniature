@@ -7,9 +7,7 @@
 extern crate alloc;
 
 use error::set_exit_code;
-use libc::wchar_t;
-use widestring::{U16CStr, WideString};
-use windows::{core::BOOL, Win32::System::Environment::GetCommandLineW};
+use windows::core::BOOL;
 
 mod error;
 mod interop;
@@ -17,29 +15,6 @@ mod job;
 mod resource;
 
 const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
-
-#[cfg(not(debug_assertions))]
-#[no_mangle]
-#[link_section = ".shim_path"]
-pub static PATH: [wchar_t; MAX_PATH] = [0; MAX_PATH];
-
-#[cfg(debug_assertions)]
-pub static PATH: [wchar_t; MAX_PATH] = [
-    67, 58, 92, 117, 115, 101, 114, 115, 92, 106, 117, 108, 105, 101, 92, 115, 99, 111, 111, 112,
-    92, 97, 112, 112, 115, 92, 115, 102, 115, 117, 92, 99, 117, 114, 114, 101, 110, 116, 92, 115,
-    102, 115, 117, 46, 101, 120, 101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0,
-];
-
-#[no_mangle]
-#[link_section = ".shim_args"]
-pub static ARGS: [wchar_t; MAX_PATH] = [0; MAX_PATH];
 
 unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     use windows::Win32::System::Console::{
@@ -58,50 +33,15 @@ unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     BOOL::from(matched_ctrl)
 }
 
-fn get_path() -> &'static U16CStr {
-    U16CStr::from_slice_truncate(&PATH).unwrap()
-}
-
-fn get_args() -> &'static U16CStr {
-    U16CStr::from_slice_truncate(&ARGS).unwrap()
-}
-
-unsafe fn calculate_command() -> WideString {
-    let mut command_length: usize = 256;
-    let path = get_path();
-    let args = get_args();
-
-    command_length += path.len();
-    command_length += args.len() + 1;
-
-    let commandline = unsafe { GetCommandLineW() };
-
-    let program_length = unsafe { interop::rcompute_program_length(commandline.as_wide()) };
-
-    let given_command = &unsafe { commandline.as_wide() }[program_length..];
-
-    command_length += given_command.len();
-
-    let mut command = WideString::with_capacity(command_length);
-    command.push(path);
-    command.push_char(' ');
-    command.push(args);
-    command.push_char(' ');
-    command.push_slice(given_command);
-    command.push_char(' ');
-
-    command
-}
-
 unsafe fn start() -> windows::core::Result<()> {
-    let command = calculate_command();
+    let resource = resource::ChildResource::load();
 
-    if unsafe { interop::ris_windows_app(get_path()) } {
+    if unsafe { interop::ris_windows_app(resource.path.as_ucstr()) } {
         windows::Win32::System::Console::FreeConsole()?;
     }
 
     let child = job::Job::new()?;
-    let running_job = child.start(command.as_ustr())?;
+    let running_job = child.start(&resource)?;
     let exit_code = running_job.wait()?;
 
     set_exit_code(exit_code);

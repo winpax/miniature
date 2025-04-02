@@ -1,4 +1,4 @@
-use widestring::{U16Str, U16String};
+use widestring::U16String;
 use windows::{
     core::{PCWSTR, PWSTR},
     Win32::{
@@ -7,7 +7,7 @@ use windows::{
     },
 };
 
-use crate::{get_args, get_path};
+use crate::resource::ChildResource;
 
 pub struct Job(HANDLE);
 
@@ -32,11 +32,13 @@ impl Job {
         Ok(Self(job_handle))
     }
 
-    pub unsafe fn start(self, command: &U16Str) -> windows::core::Result<RunningJob> {
+    pub unsafe fn start(self, resource: &ChildResource) -> windows::core::Result<RunningJob> {
         use windows::Win32::System::{
             JobObjects::AssignProcessToJobObject,
             Threading::{CreateProcessW, ResumeThread, CREATE_SUSPENDED, STARTUPINFOW},
         };
+
+        let command = resource.calculate_command();
 
         let startup_info = STARTUPINFOW::default();
         let mut process_info = PROCESS_INFORMATION::default();
@@ -63,8 +65,8 @@ impl Job {
                     #[allow(clippy::cast_possible_truncation)]
                     cbSize: core::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
                     fMask: SEE_MASK_NOCLOSEPROCESS,
-                    lpFile: PCWSTR::from_raw(get_path().as_ptr()),
-                    lpParameters: PCWSTR::from_raw(get_args().as_ptr()),
+                    lpFile: PCWSTR::from_raw(resource.path.as_ptr()),
+                    lpParameters: PCWSTR::from_raw(resource.args.as_ptr()),
                     nShow: SW_SHOW.0,
                     ..Default::default()
                 };
