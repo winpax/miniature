@@ -2,7 +2,8 @@
 include!("./src/resource/ids.rs");
 
 fn main() {
-    if cfg!(debug_assertions) {
+    #[cfg(debug_assertions)]
+    {
         use which::which;
 
         let sfsu_path = which("sfsu.exe").expect("sfsu.exe not found");
