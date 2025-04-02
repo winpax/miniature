@@ -14,6 +14,7 @@ use windows::{core::BOOL, Win32::System::Environment::GetCommandLineW};
 mod error;
 mod interop;
 mod job;
+mod resource;
 
 const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
 
@@ -39,10 +40,6 @@ pub static PATH: [wchar_t; MAX_PATH] = [
 #[no_mangle]
 #[link_section = ".shim_args"]
 pub static ARGS: [wchar_t; MAX_PATH] = [0; MAX_PATH];
-
-#[no_mangle]
-#[link_section = ".shim_command"]
-pub static COMMAND: [wchar_t; MAX_PATH] = [0; MAX_PATH];
 
 unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     use windows::Win32::System::Console::{

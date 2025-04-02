@@ -30,3 +30,7 @@ windows = { version = "0.61", features = [
     "Win32_System_IO",
     "Win32_System_Environment",
 ] }
+
+[build-dependencies]
+which = "7.0.2"
+winres = "0.1.12"
