@@ -22,7 +22,7 @@ impl ChildResource {
     }
 
     pub fn calculate_command(&self) -> WideString {
-        let mut command_length: usize = 256;
+        let mut command_length: usize = 0;
         let path = self.path.as_ustr();
         let args = self.args.as_ustr();
 
