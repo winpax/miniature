@@ -12,6 +12,7 @@ fn main() {
         use which::which;
 
         let sfsu_path = which("zeditor").expect("vscode not found");
+        let path = sfsu_path.display().to_string().replace("\\", "\\\\");
 
         let mut res = winres::WindowsResource::new();
         res.append_rc_content(&format!(
@@ -25,7 +26,6 @@ fn main() {
             IDS_ARGS, ""
             }}
             "##,
-            path = sfsu_path.display(),
         ));
         res.compile().unwrap();
     }
