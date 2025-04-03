@@ -1,3 +1,5 @@
+mod panic;
+
 use alloc::string::{String, ToString};
 use windows::Win32::Foundation::{GetLastError, HANDLE};
 

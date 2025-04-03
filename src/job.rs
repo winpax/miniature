@@ -47,8 +47,6 @@ impl Job {
 
         let command = resource.calculate_command();
 
-        let pretty_command = command.to_string_lossy();
-
         let startup_info = STARTUPINFOW::default();
         let mut process_info = PROCESS_INFORMATION::default();
 
