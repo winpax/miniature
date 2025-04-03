@@ -2,8 +2,8 @@ mod ids;
 
 use widestring::WideString;
 use windows::{
-    core::PWSTR,
     Win32::{System::Environment::GetCommandLineW, UI::WindowsAndMessaging::LoadStringW},
+    core::PWSTR,
 };
 
 pub struct ChildResource {
@@ -13,10 +13,12 @@ pub struct ChildResource {
 
 impl ChildResource {
     pub unsafe fn load() -> Self {
-        let path = load_resource_string(ids::IDS_PATH);
-        let args = load_resource_string(ids::IDS_ARGS);
+        unsafe {
+            let path = load_resource_string(ids::IDS_PATH);
+            let args = load_resource_string(ids::IDS_ARGS);
 
-        Self { path, args }
+            Self { path, args }
+        }
     }
 
     pub fn calculate_command(&self) -> WideString {
@@ -49,13 +51,15 @@ impl ChildResource {
 }
 
 unsafe fn load_resource_string(id: u32) -> WideString {
-    let mut buffer = [PWSTR::null(); 1];
-    let buffer_pointer: PWSTR = PWSTR::from_raw(buffer.as_mut_ptr().cast());
+    unsafe {
+        let mut buffer = [PWSTR::null(); 1];
+        let buffer_pointer: PWSTR = PWSTR::from_raw(buffer.as_mut_ptr().cast());
 
-    #[allow(clippy::cast_possible_wrap)]
-    let characters = LoadStringW(None, id, buffer_pointer, 0) as usize;
+        #[allow(clippy::cast_sign_loss)]
+        let characters = LoadStringW(None, id, buffer_pointer, 0) as usize;
 
-    let [actual_string] = buffer;
+        let [actual_string] = buffer;
 
-    WideString::from_ptr(actual_string.as_ptr(), characters)
+        WideString::from_ptr(actual_string.as_ptr(), characters)
+    }
 }

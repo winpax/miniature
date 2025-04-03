@@ -6,26 +6,26 @@ use windows::Win32::{
     },
 };
 
-unsafe fn process_heap_unchecked() -> HANDLE {
+unsafe fn process_heap_unchecked() -> HANDLE { unsafe {
     GetProcessHeap().unwrap_unchecked()
-}
+}}
 
 pub struct WinAllocator;
 
 unsafe impl GlobalAlloc for WinAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 { unsafe {
         HeapAlloc(process_heap_unchecked(), HEAP_NONE, layout.size()).cast()
-    }
+    }}
 
-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 { unsafe {
         HeapAlloc(process_heap_unchecked(), HEAP_ZERO_MEMORY, layout.size()).cast()
-    }
+    }}
 
-    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) { unsafe {
         HeapFree(process_heap_unchecked(), HEAP_NONE, Some(ptr.cast())).unwrap_or_default();
-    }
+    }}
 
-    unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
+    unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 { unsafe {
         HeapReAlloc(
             process_heap_unchecked(),
             HEAP_NONE,
@@ -33,7 +33,7 @@ unsafe impl GlobalAlloc for WinAllocator {
             new_size,
         )
         .cast()
-    }
+    }}
 }
 
 #[global_allocator]

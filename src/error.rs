@@ -16,7 +16,11 @@ pub fn get_exit_code() -> u32 {
 static mut EXIT_CODE: u32 = 0;
 
 unsafe fn get_stderr() -> windows::core::Result<HANDLE> {
-    windows::Win32::System::Console::GetStdHandle(windows::Win32::System::Console::STD_ERROR_HANDLE)
+    unsafe {
+        windows::Win32::System::Console::GetStdHandle(
+            windows::Win32::System::Console::STD_ERROR_HANDLE,
+        )
+    }
 }
 
 pub fn log_error(message: impl AsRef<str>) -> windows::core::Result<()> {
