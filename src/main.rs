@@ -6,15 +6,12 @@
 
 extern crate alloc;
 
-use core::ffi::c_int;
-
-use args::Args;
-use widestring::{U16CString, WideChar};
+use widestring::U16CString;
 use windows::core::BOOL;
 
 use error::set_exit_code;
 
-mod args;
+mod allocator;
 mod error;
 mod interop;
 mod job;
@@ -54,15 +51,9 @@ unsafe fn start() -> windows::core::Result<()> {
     Ok(())
 }
 
-static mut ARGS: Args = Args::null();
-
 #[no_mangle]
 #[allow(clippy::similar_names)]
-extern "C" fn wmain(argc: c_int, argv: *const *const WideChar) -> u32 {
-    unsafe {
-        ARGS = Args::new(argc, argv);
-    }
-
+extern "C" fn wmain() -> u32 {
     match unsafe { start() } {
         Ok(()) => error::get_exit_code(),
         Err(e) => {

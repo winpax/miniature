@@ -27,6 +27,7 @@ windows = { version = "0.61", default-features = false, features = [
     "Win32_System_Console",
     "Win32_System_IO",
     "Win32_System_Environment",
+    "Win32_System_Memory",
 ] }
 
 [build-dependencies]
