@@ -41,6 +41,8 @@ pub unsafe fn rcompute_program_length(commandline: &[u16]) -> usize {
         }
         // End of string
         if char == ('"' as u16) {
+            // Skip the space after the closing quote
+            i += 1;
             break;
         }
     }

@@ -6,8 +6,9 @@
 
 extern crate alloc;
 
-use error::set_exit_code;
 use windows::core::BOOL;
+
+use error::set_exit_code;
 
 mod error;
 mod interop;
@@ -54,7 +55,7 @@ extern "C" fn main(_argc: isize, _argv: *const *const u8) -> u32 {
     match unsafe { start() } {
         Ok(()) => error::get_exit_code(),
         Err(e) => {
-            unsafe { libc::perror(e.message().as_ptr().cast()) };
+            _ = error::log_error(e.message());
             1
         }
     }
