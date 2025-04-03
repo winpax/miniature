@@ -2,8 +2,6 @@
 include!("./src/resource/ids.rs");
 
 fn main() {
-    println!("cargo:rustc-link-lib=kernel32");
-
     #[cfg(debug_assertions)]
     {
         use which::which;

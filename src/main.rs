@@ -6,15 +6,12 @@
 
 extern crate alloc;
 
-use core::ffi::c_int;
-
-use args::Args;
-use widestring::{U16CString, WideChar};
+use widestring::U16CString;
 use windows::core::BOOL;
 
 use error::set_exit_code;
 
-mod args;
+mod allocator;
 mod error;
 mod interop;
 mod job;
@@ -37,7 +34,7 @@ unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     BOOL::from(matched_ctrl)
 }
 
-unsafe fn start() -> windows::core::Result<()> {
+unsafe fn main() -> windows::core::Result<()> {
     let resource = resource::ChildResource::load();
 
     if unsafe { interop::ris_windows_app(U16CString::from_ustr(resource.path.as_ustr()).unwrap()) }
@@ -54,16 +51,10 @@ unsafe fn start() -> windows::core::Result<()> {
     Ok(())
 }
 
-static mut ARGS: Args = Args::null();
-
 #[no_mangle]
 #[allow(clippy::similar_names)]
-extern "C" fn wmain(argc: c_int, argv: *const *const WideChar) -> u32 {
-    unsafe {
-        ARGS = Args::new(argc, argv);
-    }
-
-    match unsafe { start() } {
+extern "C" fn wmain() -> u32 {
+    match unsafe { main() } {
         Ok(()) => error::get_exit_code(),
         Err(e) => {
             _ = error::log_error(e.message());

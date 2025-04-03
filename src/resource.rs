@@ -1,7 +1,6 @@
 mod ids;
 
-use alloc::borrow::ToOwned;
-use widestring::{WideStr, WideString};
+use widestring::WideString;
 use windows::{
     core::PWSTR,
     Win32::{System::Environment::GetCommandLineW, UI::WindowsAndMessaging::LoadStringW},
