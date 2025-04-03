@@ -1,19 +1,11 @@
 mod ids;
 
-use core::ffi::c_int;
-
-use alloc::{borrow::ToOwned, vec::Vec};
-use widestring::{U16CStr, U16CString, WideString};
+use alloc::borrow::ToOwned;
+use widestring::{U16CString, WideString};
 use windows::{
     core::PWSTR,
-    Win32::{
-        Foundation::{LocalFree, HLOCAL},
-        System::Environment::GetCommandLineW,
-        UI::{Shell::CommandLineToArgvW, WindowsAndMessaging::LoadStringW},
-    },
+    Win32::{System::Environment::GetCommandLineW, UI::WindowsAndMessaging::LoadStringW},
 };
-
-use crate::MAX_PATH;
 
 pub struct ChildResource {
     pub path: U16CString,
@@ -31,65 +23,17 @@ impl ChildResource {
     pub fn calculate_command(&self) -> WideString {
         let mut command_length: usize = 0;
         let path = self.path.as_ustr();
-        let pretty_path = path.to_string_lossy();
         let args = self.args.as_ustr();
-        let pretty_args = args.to_string_lossy();
 
         command_length += path.len() + 1;
         command_length += args.len() + 1;
 
-        // let commandline = unsafe { GetCommandLineW() };
-        // let (cl_arguments_raw, arg_ptr) = {
-        //     let mut arg_count: c_int = 0;
+        let commandline = unsafe { GetCommandLineW() };
 
-        //     assert!((arg_count >= 0), "CommandLineToArgvW failed");
+        let program_length =
+            unsafe { crate::interop::rcompute_program_length(commandline.as_wide()) };
 
-        //     let arg_ptr = unsafe { CommandLineToArgvW(commandline, &mut arg_count) };
-
-        //     (
-        //         #[allow(clippy::cast_sign_loss)]
-        //         unsafe {
-        //             core::slice::from_raw_parts(arg_ptr.cast_const(), arg_count as usize)
-        //         },
-        //         arg_ptr,
-        //     )
-        // };
-
-        // let given_command = {
-        //     let mut arguments = cl_arguments_raw.iter().map(|raw_arg| {
-        //         unsafe { U16CStr::from_slice_truncate(raw_arg.as_wide()) }.expect("null terminated")
-        //     });
-
-        //     let arguments_length = arguments.by_ref().fold(0, |acc, arg| acc + arg.len() + 1);
-
-        //     let given_command = arguments.fold(
-        //         WideString::with_capacity(arguments_length),
-        //         |mut acc, arg| {
-        //             acc.push_slice(arg);
-        //             acc.push_char(' ');
-        //             acc
-        //         },
-        //     );
-
-        //     unsafe { LocalFree(Some(arg_ptr as HLOCAL)) };
-
-        //     given_command
-        // };
-
-        // let program_length =
-        //     unsafe { crate::interop::rcompute_program_length(commandline.as_wide()) };
-
-        // let given_command = &unsafe { commandline.as_wide() }[program_length..];
-
-        #[allow(static_mut_refs)]
-        let cli_args = unsafe { crate::ARGS.args() };
-        let given_command = cli_args.iter().fold(WideString::new(), |mut acc, arg| {
-            acc.push_slice(arg);
-            acc.push_char(' ');
-            acc
-        });
-
-        let pretty_given_command = given_command.to_string_lossy();
+        let given_command = &unsafe { commandline.as_wide() }[program_length..];
 
         command_length += given_command.len() + 1;
 
@@ -100,8 +44,6 @@ impl ChildResource {
         command.push_char(' ');
         command.push_slice(given_command);
         command.push_char(' ');
-
-        let pretty_command = command.to_string_lossy();
 
         command
     }
@@ -119,8 +61,6 @@ unsafe fn load_resource_string(id: u32) -> widestring::U16CString {
     let output_string = widestring::U16CStr::from_ptr(actual_string.as_ptr(), characters as usize)
         .unwrap()
         .to_owned();
-
-    let pretty_string = output_string.to_string_lossy();
 
     output_string
 }

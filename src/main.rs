@@ -8,7 +8,6 @@ extern crate alloc;
 
 use core::ffi::c_int;
 
-use alloc::vec::Vec;
 use args::Args;
 use widestring::WideChar;
 use windows::core::BOOL;
@@ -20,8 +19,6 @@ mod error;
 mod interop;
 mod job;
 mod resource;
-
-const MAX_PATH: usize = windows::Win32::Foundation::MAX_PATH as usize + 2;
 
 unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     use windows::Win32::System::Console::{

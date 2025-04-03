@@ -3,10 +3,6 @@
 use widestring::U16CStr;
 use windows::core::{PCWSTR, PWSTR};
 
-extern "C" {
-    pub fn load_string(buffer: PWSTR, id: u32) -> i32;
-}
-
 pub unsafe fn ris_windows_app(path: &U16CStr) -> bool {
     use windows::Win32::{
         Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,

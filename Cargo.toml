@@ -30,6 +30,5 @@ windows = { version = "0.61", features = [
 ] }
 
 [build-dependencies]
-cc = "1.2.17"
 which = "7.0.2"
 winres = "0.1.12"

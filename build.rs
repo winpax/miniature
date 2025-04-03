@@ -3,15 +3,12 @@ include!("./src/resource/ids.rs");
 
 fn main() {
     println!("cargo:rustc-link-lib=kernel32");
-    println!("cargo:rerun-if-changed=interop.c");
-
-    cc::Build::new().file("interop.c").compile("interop");
 
     #[cfg(debug_assertions)]
     {
         use which::which;
 
-        let sfsu_path = which("zeditor").expect("vscode not found");
+        let sfsu_path = which("sfsu").expect("sfsu not found");
         let path = sfsu_path.display().to_string().replace("\\", "\\\\");
 
         let mut res = winres::WindowsResource::new();
@@ -23,7 +20,7 @@ fn main() {
             STRINGTABLE
             {{
             IDS_PATH, "{path}"
-            IDS_ARGS, ""
+            IDS_ARGS, "help"
             }}
             "##,
         ));
