@@ -1,7 +1,11 @@
 //! Both functions in this file are ported almost directly from the original <https://github.com/71/scoop-better-shimexe/blob/master/shim.c>
 
 use widestring::U16CStr;
-use windows::core::PCWSTR;
+use windows::core::{PCWSTR, PWSTR};
+
+extern "C" {
+    pub fn load_string(buffer: PWSTR, id: u32) -> i32;
+}
 
 pub unsafe fn ris_windows_app(path: &U16CStr) -> bool {
     use windows::Win32::{

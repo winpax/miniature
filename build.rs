@@ -3,6 +3,9 @@ include!("./src/resource/ids.rs");
 
 fn main() {
     println!("cargo:rustc-link-lib=kernel32");
+    println!("cargo:rerun-if-changed=interop.c");
+
+    cc::Build::new().file("interop.c").compile("interop");
 
     #[cfg(debug_assertions)]
     {
