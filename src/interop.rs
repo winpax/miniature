@@ -1,9 +1,9 @@
 //! Both functions in this file are ported almost directly from the original <https://github.com/71/scoop-better-shimexe/blob/master/shim.c>
 
 use widestring::U16CStr;
-use windows::core::{PCWSTR, PWSTR};
+use windows::core::PCWSTR;
 
-pub unsafe fn ris_windows_app(path: &U16CStr) -> bool {
+pub unsafe fn ris_windows_app(path: impl AsRef<U16CStr>) -> bool {
     use windows::Win32::{
         Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
         UI::Shell::{SHGetFileInfoW, SHFILEINFOW, SHGFI_EXETYPE},
@@ -12,7 +12,7 @@ pub unsafe fn ris_windows_app(path: &U16CStr) -> bool {
 
     let file_info = unsafe {
         SHGetFileInfoW(
-            PCWSTR::from_raw(path.as_ptr()),
+            PCWSTR::from_raw(path.as_ref().as_ptr()),
             FILE_FLAGS_AND_ATTRIBUTES::default(),
             Some(&mut file_info),
             core::mem::size_of::<SHFILEINFOW>() as u32,

@@ -9,7 +9,7 @@ extern crate alloc;
 use core::ffi::c_int;
 
 use args::Args;
-use widestring::WideChar;
+use widestring::{U16CString, WideChar};
 use windows::core::BOOL;
 
 use error::set_exit_code;
@@ -40,7 +40,8 @@ unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
 unsafe fn start() -> windows::core::Result<()> {
     let resource = resource::ChildResource::load();
 
-    if unsafe { interop::ris_windows_app(resource.path.as_ucstr()) } {
+    if unsafe { interop::ris_windows_app(U16CString::from_ustr(resource.path.as_ustr()).unwrap()) }
+    {
         windows::Win32::System::Console::FreeConsole()?;
     }
 

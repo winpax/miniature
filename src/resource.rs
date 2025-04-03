@@ -1,15 +1,15 @@
 mod ids;
 
 use alloc::borrow::ToOwned;
-use widestring::{U16CString, WideString};
+use widestring::{WideStr, WideString};
 use windows::{
     core::PWSTR,
     Win32::{System::Environment::GetCommandLineW, UI::WindowsAndMessaging::LoadStringW},
 };
 
 pub struct ChildResource {
-    pub path: U16CString,
-    pub args: U16CString,
+    pub path: WideString,
+    pub args: WideString,
 }
 
 impl ChildResource {
@@ -49,7 +49,7 @@ impl ChildResource {
     }
 }
 
-unsafe fn load_resource_string(id: u32) -> widestring::U16CString {
+unsafe fn load_resource_string(id: u32) -> WideString {
     let mut buffer = [PWSTR::null(); 1];
     let buffer_pointer: PWSTR = PWSTR::from_raw(buffer.as_mut_ptr().cast());
 
@@ -58,9 +58,5 @@ unsafe fn load_resource_string(id: u32) -> widestring::U16CString {
 
     let [actual_string] = buffer;
 
-    let output_string = widestring::U16CStr::from_ptr(actual_string.as_ptr(), characters as usize)
-        .unwrap()
-        .to_owned();
-
-    output_string
+    WideString::from_ptr(actual_string.as_ptr(), characters)
 }
