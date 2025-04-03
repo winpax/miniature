@@ -3,7 +3,7 @@
 use widestring::U16CStr;
 use windows::core::PCWSTR;
 
-pub unsafe fn ris_windows_app(path: &U16CStr) -> bool {
+pub unsafe fn ris_windows_app(path: impl AsRef<U16CStr>) -> bool {
     use windows::Win32::{
         Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
         UI::Shell::{SHGetFileInfoW, SHFILEINFOW, SHGFI_EXETYPE},
@@ -12,7 +12,7 @@ pub unsafe fn ris_windows_app(path: &U16CStr) -> bool {
 
     let file_info = unsafe {
         SHGetFileInfoW(
-            PCWSTR::from_raw(path.as_ptr()),
+            PCWSTR::from_raw(path.as_ref().as_ptr()),
             FILE_FLAGS_AND_ATTRIBUTES::default(),
             Some(&mut file_info),
             core::mem::size_of::<SHFILEINFOW>() as u32,
@@ -41,6 +41,8 @@ pub unsafe fn rcompute_program_length(commandline: &[u16]) -> usize {
         }
         // End of string
         if char == ('"' as u16) {
+            // Skip the space after the closing quote
+            i += 1;
             break;
         }
     }

@@ -14,10 +14,8 @@ strip = true
 panic = "abort"
 
 [dependencies]
-libc = { version = "0.2" }
-widestring = { version = "1.2", default-features = false, features = [
-    "alloc",
-] }
+once_cell = { version = "1.21.3", default-features = false }
+widestring = { version = "1.2", default-features = false, features = ["alloc"] }
 windows = { version = "0.61", features = [
     "Win32_Security",
     "Win32_UI_Shell",
@@ -30,3 +28,7 @@ windows = { version = "0.61", features = [
     "Win32_System_IO",
     "Win32_System_Environment",
 ] }
+
+[build-dependencies]
+which = "7.0.2"
+winres = "0.1.12"

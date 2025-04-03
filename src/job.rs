@@ -1,4 +1,4 @@
-use widestring::{U16Str, U16String};
+use alloc::string::String;
 use windows::{
     core::{PCWSTR, PWSTR},
     Win32::{
@@ -7,7 +7,7 @@ use windows::{
     },
 };
 
-use crate::{get_args, get_path};
+use crate::{error, resource::ChildResource};
 
 pub struct Job(HANDLE);
 
@@ -32,11 +32,15 @@ impl Job {
         Ok(Self(job_handle))
     }
 
-    pub unsafe fn start(self, command: &U16Str) -> windows::core::Result<RunningJob> {
+    pub unsafe fn start(self, resource: &ChildResource) -> windows::core::Result<RunningJob> {
         use windows::Win32::System::{
             JobObjects::AssignProcessToJobObject,
             Threading::{CreateProcessW, ResumeThread, CREATE_SUSPENDED, STARTUPINFOW},
         };
+
+        let command = resource.calculate_command();
+
+        let pretty_command = command.to_string_lossy();
 
         let startup_info = STARTUPINFOW::default();
         let mut process_info = PROCESS_INFORMATION::default();
@@ -63,44 +67,50 @@ impl Job {
                     #[allow(clippy::cast_possible_truncation)]
                     cbSize: core::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
                     fMask: SEE_MASK_NOCLOSEPROCESS,
-                    lpFile: PCWSTR::from_raw(get_path().as_ptr()),
-                    lpParameters: PCWSTR::from_raw(get_args().as_ptr()),
+                    lpFile: PCWSTR::from_raw(resource.path.as_ptr()),
+                    lpParameters: PCWSTR::from_raw(resource.args.as_ptr()),
                     nShow: SW_SHOW.0,
                     ..Default::default()
                 };
 
                 if let Err(err) = ShellExecuteExW(&mut execution_info) {
-                    let mut output = U16String::from("Shim: Unable to create elevated process.\n");
+                    let mut output = String::from("Shim: Unable to create elevated process.\n");
                     output.push_str("\t\t- Failed with error: ");
-                    output.push_str(err.message());
-                    output.push_char('\n');
+                    output.push_str(&err.message());
+                    output.push('\n');
 
-                    super::error::log_error(output)?;
-                    super::error::set_exit_code(1);
-                    super::error::exit_immediately();
+                    error::log_error(output)?;
+                    error::set_exit_code(1);
+                    error::exit_immediately();
                 }
 
                 process_info.hProcess = execution_info.hProcess;
             } else {
-                let mut output = U16String::from("Shim: Could not create process with command ");
-                output.push(command);
-                output.push_char('.');
-                output.push_char('\n');
+                let mut output = String::from("Shim: Could not create process with command ");
+                output.push_str(&command.to_string_lossy());
+                output.push('.');
+                output.push('\n');
                 output.push_str("\t\t- Failed with error: ");
-                output.push_str(err.message());
-                output.push_char('\n');
+                output.push_str(&err.message());
+                output.push('\n');
 
-                super::error::log_error(output)?;
-                super::error::set_exit_code(1);
-                super::error::exit_immediately();
+                error::log_error(output)?;
+                error::set_exit_code(1);
+                error::exit_immediately();
             }
         } else {
             AssignProcessToJobObject(self.0, process_info.hProcess)?;
-            ResumeThread(process_info.hThread);
+            // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
+            #[allow(clippy::cast_possible_wrap)]
+            let res = ResumeThread(process_info.hThread) as i32;
+
+            if res < 0 {
+                error::handle_windows_error();
+            }
         }
 
         if SetConsoleCtrlHandler(Some(super::ctrl_handler), true).is_err() {
-            super::error::log_error(U16String::from(
+            error::log_error(String::from(
                 "Could not set control handler; Ctrl-C behaviour may be invalid.\n",
             ))?;
         }
