@@ -1,4 +1,5 @@
 use alloc::string::String;
+use widestring::U16CString;
 use windows::{
     core::{PCWSTR, PWSTR},
     Win32::{
@@ -33,9 +34,15 @@ impl Job {
     }
 
     pub unsafe fn start(self, resource: &ChildResource) -> windows::core::Result<RunningJob> {
-        use windows::Win32::System::{
-            JobObjects::AssignProcessToJobObject,
-            Threading::{CreateProcessW, ResumeThread, CREATE_SUSPENDED, STARTUPINFOW},
+        use windows::Win32::{
+            System::{
+                JobObjects::AssignProcessToJobObject,
+                Threading::{CreateProcessW, ResumeThread, CREATE_SUSPENDED, STARTUPINFOW},
+            },
+            UI::{
+                Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW},
+                WindowsAndMessaging::SW_SHOW,
+            },
         };
 
         let command = resource.calculate_command();
@@ -45,59 +52,47 @@ impl Job {
         let startup_info = STARTUPINFOW::default();
         let mut process_info = PROCESS_INFORMATION::default();
 
-        if let Err(err) = CreateProcessW(
-            None,
-            Some(PWSTR::from_raw(command.as_ptr().cast_mut())),
-            None,
-            None,
-            true,
-            CREATE_SUSPENDED,
-            None,
-            None,
-            &startup_info,
-            &mut process_info,
-        ) {
-            if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
-                use windows::Win32::UI::{
-                    Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW},
-                    WindowsAndMessaging::SW_SHOW,
-                };
+        let mut execution_info = SHELLEXECUTEINFOW {
+            #[allow(clippy::cast_possible_truncation)]
+            cbSize: core::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+            fMask: SEE_MASK_NOCLOSEPROCESS,
+            lpFile: PCWSTR::from_raw(
+                U16CString::from_ustr(resource.path.as_ustr())
+                    .unwrap()
+                    .as_ptr(),
+            ),
+            lpParameters: PCWSTR::from_raw(
+                U16CString::from_ustr(resource.args.as_ustr())
+                    .unwrap()
+                    .as_ptr(),
+            ),
+            nShow: SW_SHOW.0,
+            ..Default::default()
+        };
 
-                let mut execution_info = SHELLEXECUTEINFOW {
-                    #[allow(clippy::cast_possible_truncation)]
-                    cbSize: core::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
-                    fMask: SEE_MASK_NOCLOSEPROCESS,
-                    lpFile: PCWSTR::from_raw(resource.path.as_ptr()),
-                    lpParameters: PCWSTR::from_raw(resource.args.as_ptr()),
-                    nShow: SW_SHOW.0,
-                    ..Default::default()
-                };
+        // if let Err(err) =  {
+        //     let mut output = String::from("Shim: Unable to create elevated process.\n");
+        //     output.push_str("\t\t- Failed with error: ");
+        //     output.push_str(&err.message());
+        //     output.push('\n');
 
-                if let Err(err) = ShellExecuteExW(&mut execution_info) {
-                    let mut output = String::from("Shim: Unable to create elevated process.\n");
-                    output.push_str("\t\t- Failed with error: ");
-                    output.push_str(&err.message());
-                    output.push('\n');
+        //     error::log_error(output)?;
+        //     error::set_exit_code(1);
+        //     error::exit_immediately();
+        // };
 
-                    error::log_error(output)?;
-                    error::set_exit_code(1);
-                    error::exit_immediately();
-                }
+        if let Err(err) = ShellExecuteExW(&mut execution_info) {
+            let mut output = String::from("Shim: Could not create process with command ");
+            output.push_str(&command.to_string_lossy());
+            output.push('.');
+            output.push('\n');
+            output.push_str("\t\t- Failed with error: ");
+            output.push_str(&err.message());
+            output.push('\n');
 
-                process_info.hProcess = execution_info.hProcess;
-            } else {
-                let mut output = String::from("Shim: Could not create process with command ");
-                output.push_str(&command.to_string_lossy());
-                output.push('.');
-                output.push('\n');
-                output.push_str("\t\t- Failed with error: ");
-                output.push_str(&err.message());
-                output.push('\n');
-
-                error::log_error(output)?;
-                error::set_exit_code(1);
-                error::exit_immediately();
-            }
+            error::log_error(output)?;
+            error::set_exit_code(1);
+            error::exit_immediately();
         } else {
             AssignProcessToJobObject(self.0, process_info.hProcess)?;
             // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
