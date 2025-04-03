@@ -1,6 +1,6 @@
 mod panic;
 
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use windows::Win32::Foundation::{GetLastError, HANDLE};
 
 pub fn set_exit_code(code: u32) {
@@ -35,15 +35,14 @@ pub fn exit_immediately() -> ! {
 }
 
 pub fn handle_windows_error() -> ! {
-    set_exit_code(1);
     let error = unsafe { GetLastError() };
+    if error.0 != 0 {
+        set_exit_code(error.0);
+    }
+
     let mut output = String::from("Shim: An error occurred.\n");
     output.push_str("\t\t- Failed with error: ");
     output.push_str(&error.to_hresult().message());
-
-    output.push('\n');
-    output.push_str("\t\t- Error code: ");
-    output.push_str(&error.0.to_string());
     output.push('\n');
 
     let res = log_error(output);

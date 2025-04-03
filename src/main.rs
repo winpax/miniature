@@ -63,9 +63,10 @@ extern "C" fn wmain() -> u32 {
                 exit_code
             }
         }
+        #[allow(clippy::cast_sign_loss)]
         Err(e) => {
             _ = error::log_error(e.message());
-            1
+            e.code().0 as u32
         }
     }
 }
