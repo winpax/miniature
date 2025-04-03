@@ -3,6 +3,8 @@ include!("./src/resource/ids.rs");
 
 fn main() {
     println!("cargo:rustc-link-lib=kernel32");
+    println!("cargo:rustc-link-arg=-nostartfiles");
+    println!("cargo:rustc-link-arg=-nostdlib");
 
     #[cfg(debug_assertions)]
     {
