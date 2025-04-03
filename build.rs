@@ -18,7 +18,7 @@ fn main() {
             STRINGTABLE
             {{
             IDS_PATH, "{path}"
-            IDS_ARGS, "help"
+            IDS_ARGS, "--help"
             }}
             "##,
         ));
