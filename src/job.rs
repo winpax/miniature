@@ -1,10 +1,10 @@
+mod spawn;
+
 use alloc::string::String;
-use windows::{
-    Win32::{
-        Foundation::{ERROR_ELEVATION_REQUIRED, HANDLE},
-        System::{Console::SetConsoleCtrlHandler, Threading::PROCESS_INFORMATION},
-    },
-    core::{PCWSTR, PWSTR},
+use spawn::Spawn;
+use windows::Win32::{
+    Foundation::{ERROR_ELEVATION_REQUIRED, HANDLE},
+    System::{Console::SetConsoleCtrlHandler, Threading::PROCESS_INFORMATION},
 };
 
 use crate::{error, resource::ChildResource};
@@ -38,45 +38,19 @@ impl Job {
     pub unsafe fn start(self, resource: &ChildResource) -> windows::core::Result<RunningJob> {
         unsafe {
             use windows::Win32::System::{
-                JobObjects::AssignProcessToJobObject,
-                Threading::{CREATE_SUSPENDED, CreateProcessW, ResumeThread, STARTUPINFOW},
+                JobObjects::AssignProcessToJobObject, Threading::ResumeThread,
             };
 
-            let command = resource.calculate_command();
-
-            let startup_info = STARTUPINFOW::default();
-            let mut process_info = PROCESS_INFORMATION::default();
-
-            if let Err(err) = CreateProcessW(
-                None,
-                Some(PWSTR::from_raw(command.as_ptr().cast_mut())),
-                None,
-                None,
-                true,
-                CREATE_SUSPENDED,
-                None,
-                None,
-                &startup_info,
-                &mut process_info,
-            ) {
-                if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
-                    use windows::Win32::UI::{
-                        Shell::{SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW},
-                        WindowsAndMessaging::SW_SHOW,
-                    };
-
-                    let mut execution_info = SHELLEXECUTEINFOW {
-                        #[allow(clippy::cast_possible_truncation)]
-                        cbSize: core::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
-                        fMask: SEE_MASK_NOCLOSEPROCESS,
-                        lpFile: PCWSTR::from_raw(resource.path.as_ptr()),
-                        lpParameters: PCWSTR::from_raw(resource.args.as_ptr()),
-                        nShow: SW_SHOW.0,
-                        ..Default::default()
-                    };
-
-                    if let Err(err) = ShellExecuteExW(&mut execution_info) {
-                        let mut output = String::from("Shim: Unable to create elevated process.\n");
+            let process_info = match resource.spawn_command() {
+                Err(err) => {
+                    if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
+                        resource.spawn_shell()?
+                    } else {
+                        let mut output =
+                            String::from("Shim: Could not create process with command ");
+                        output.push_str(&resource.calculate_command().to_string_lossy());
+                        output.push('.');
+                        output.push('\n');
                         output.push_str("\t\t- Failed with error: ");
                         output.push_str(&err.message());
                         output.push('\n');
@@ -85,31 +59,20 @@ impl Job {
                         error::set_exit_code(1);
                         error::exit_immediately();
                     }
-
-                    process_info.hProcess = execution_info.hProcess;
-                } else {
-                    let mut output = String::from("Shim: Could not create process with command ");
-                    output.push_str(&command.to_string_lossy());
-                    output.push('.');
-                    output.push('\n');
-                    output.push_str("\t\t- Failed with error: ");
-                    output.push_str(&err.message());
-                    output.push('\n');
-
-                    error::log_error(output)?;
-                    error::set_exit_code(1);
-                    error::exit_immediately();
                 }
-            } else {
-                AssignProcessToJobObject(self.0, process_info.hProcess)?;
-                // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
-                #[allow(clippy::cast_possible_wrap)]
-                let res = ResumeThread(process_info.hThread) as i32;
+                Ok(process_info) => {
+                    AssignProcessToJobObject(self.0, process_info.hProcess)?;
+                    // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
+                    #[allow(clippy::cast_possible_wrap)]
+                    let res = ResumeThread(process_info.hThread) as i32;
 
-                if res < 0 {
-                    error::handle_windows_error();
+                    if res < 0 {
+                        error::handle_windows_error();
+                    }
+
+                    process_info
                 }
-            }
+            };
 
             if SetConsoleCtrlHandler(Some(super::ctrl_handler), true).is_err() {
                 error::log_error(String::from(
