@@ -65,7 +65,8 @@ impl Spawn for ChildResource {
             output.push('\n');
 
             error::log_error(output)?;
-            error::set_exit_code(1);
+            error::ExitCode::set_code(1);
+            error::ExitCode::set_reason(error::ExitCodeReason::ProcessError);
             error::exit_immediately();
         }
 

@@ -56,7 +56,8 @@ impl Job {
                         output.push('\n');
 
                         error::log_error(output)?;
-                        error::set_exit_code(1);
+                        error::ExitCode::set_code(1);
+                        error::ExitCode::set_reason(error::ExitCodeReason::ProcessError);
                         error::exit_immediately();
                     }
                 }
@@ -75,7 +76,8 @@ impl Job {
                                 String::from("Shim: Resuming child failed with unknown error.\n");
 
                             error::log_error(output)?;
-                            error::set_exit_code(1);
+                            error::ExitCode::set_code(1);
+                            error::ExitCode::set_reason(error::ExitCodeReason::Unknown);
                             error::exit_immediately();
                         }
                     }
