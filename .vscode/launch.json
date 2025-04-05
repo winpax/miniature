@@ -42,6 +42,46 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'numin'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=numin",
+                    "--package=numin"
+                ],
+                "filter": {
+                    "name": "numin",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "sfsuh",
+                "help"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'numin'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=numin",
+                    "--package=numin"
+                ],
+                "filter": {
+                    "name": "numin",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

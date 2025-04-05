@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{io::Write, path::Path};
 
 static MINIATURE: &[u8] = include_bytes!("../../miniature.exe");
 
@@ -16,8 +16,8 @@ impl Executable {
         Executable(MINIATURE)
     }
 
-    pub fn save(self) -> std::io::Result<()> {
-        // let mut file = std::fs::File::create("miniature.exe")?;
+    pub fn save(self, dest_path: impl AsRef<Path>) -> std::io::Result<()> {
+        let mut file = std::fs::File::create(dest_path)?;
         file.write_all(self.0)?;
         Ok(())
     }

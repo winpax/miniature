@@ -1,8 +1,9 @@
+mod error;
 mod interop;
 mod miniature;
 mod table;
 
-use std::{io::Write, path::PathBuf};
+use std::{ffi::OsString, path::PathBuf};
 
 use clap::Parser;
 use interop::{MAKEINTRESOURCE, MAKELANGID};
@@ -21,30 +22,42 @@ use windows::{
 #[derive(Debug, Parser)]
 struct Args {
     #[clap(help = "Name of the shim")]
-    name: PathBuf,
+    name: String,
     #[clap(help = "Arguments to pass to the executable from the shim")]
     args: Vec<String>,
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> error::Result<()> {
     let args = Args::parse();
 
-    if matches!(args.name.try_exists(), Ok(true)) {
-        anyhow::bail!("Path already exists, cannot create a new shim!");
+    if matches!(PathBuf::from(&args.name).try_exists(), Ok(true)) {
+        Err(anyhow::anyhow!(
+            "Path already exists, cannot create a new shim!"
+        ))?;
     }
 
+    let dest_path = PathBuf::from(&args.name).with_extension("exe");
+
     let exe = miniature::Executable::new();
-    exe.save()?;
+    exe.save(&dest_path)?;
 
-    let c_path = WideCString::from_os_str(args.name.as_os_str())?.into_boxed_ucstr();
+    let name = OsString::from(&args.name);
 
-    let exe_handle = unsafe { BeginUpdateResourceW(PCWSTR::from_raw(c_path.as_ptr()), true)? };
+    let c_path = WideCString::from_os_str(dest_path.as_os_str())?.into_boxed_ucstr();
+
+    let Ok(exe_handle) = (unsafe { BeginUpdateResourceW(PCWSTR::from_raw(c_path.as_ptr()), true) })
+    else {
+        let error = windows::core::Error::from_win32();
+        let error = error.message();
+        println!("Failed to create the executable: {error}");
+        return Ok(());
+    };
 
     let data = {
         let mut data = table::StringTable::default();
         data.set_path(Box::leak(c_path));
         data.set_args(Box::leak(
-            WideCString::from_os_str(args.name.as_os_str())?.into_boxed_ucstr(),
+            WideCString::from_os_str(name.as_os_str())?.into_boxed_ucstr(),
         ));
 
         data
