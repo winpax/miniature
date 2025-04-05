@@ -3,7 +3,7 @@ mod interop;
 mod miniature;
 mod table;
 
-use std::{ffi::OsString, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::Parser;
 use interop::{MAKEINTRESOURCE, MAKELANGID};
@@ -45,8 +45,6 @@ fn main() -> error::Result<()> {
     let exe = miniature::Executable::new();
     exe.save(&dest_path)?;
 
-    let name = OsString::from(&args.name);
-
     let c_path = WideCString::from_os_str(dest_path.as_os_str())?.into_boxed_ucstr();
 
     let Ok(exe_handle) = (unsafe { BeginUpdateResourceW(PCWSTR::from_raw(c_path.as_ptr()), true) })
@@ -59,12 +57,11 @@ fn main() -> error::Result<()> {
 
     let data = {
         let c_exe = WideCString::from_os_str(args.exe.as_os_str())?.into_boxed_ucstr();
+        let c_args = WideCString::from_str(args.args.join(" "))?.into_boxed_ucstr();
 
         let mut data = table::StringTable::default();
         data.set_path(Box::leak(c_exe));
-        data.set_args(Box::leak(
-            WideCString::from_os_str(name.as_os_str())?.into_boxed_ucstr(),
-        ));
+        data.set_args(Box::leak(c_args));
 
         data
     };
@@ -73,7 +70,7 @@ fn main() -> error::Result<()> {
 
     for entry in data.iter() {
         let entry = *entry;
-        table_buffer.push(entry.len() as u16);
+        table_buffer.push((entry.len() + 1) as u16);
 
         let entry_buffer = entry.as_slice_with_nul();
         table_buffer.extend(entry_buffer);

@@ -2,7 +2,8 @@ use std::ops::{Deref, DerefMut};
 
 use widestring::{WideCStr, WideCString};
 
-pub struct StringTable(Vec<&'static WideCStr>);
+#[derive(Debug, Clone)]
+pub struct StringTable([&'static WideCStr; 16]);
 
 impl StringTable {
     pub fn set_path(&mut self, path: &'static WideCStr) {
@@ -24,16 +25,14 @@ impl Drop for StringTable {
 
 impl Default for StringTable {
     fn default() -> Self {
-        let mut data: Vec<&'static WideCStr> = Vec::with_capacity(16);
-        for _ in 0..16 {
-            data.push(Box::leak(WideCString::new().into_boxed_ucstr()));
-        }
+        let data =
+            [0; 16].map(|_| Box::leak(WideCString::new().into_boxed_ucstr()) as &'static WideCStr);
         Self(data)
     }
 }
 
 impl Deref for StringTable {
-    type Target = Vec<&'static WideCStr>;
+    type Target = [&'static WideCStr; 16];
 
     fn deref(&self) -> &Self::Target {
         &self.0

@@ -1,5 +1,5 @@
 [build]
-rustflags = ["-Zlocation-detail=none", "-Zfmt-debug=none"]
+rustflags = ["-Zlocation-detail=none"]
 target = "x86_64-pc-windows-msvc"
 
 [unstable]
