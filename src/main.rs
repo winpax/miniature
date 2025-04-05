@@ -6,7 +6,7 @@
 
 extern crate alloc;
 
-use widestring::U16CString;
+use widestring::WideCString;
 use windows::{Win32::Foundation::GetLastError, core::BOOL};
 
 use error::{ExitCode, exit_immediately, handle_windows_error};
@@ -38,7 +38,7 @@ unsafe fn main() -> windows::core::Result<()> {
     unsafe {
         let resource = resource::ChildResource::load();
 
-        if !interop::ris_windows_app(U16CString::from_ustr(resource.path.as_ustr()).unwrap()) {
+        if !interop::ris_windows_app(WideCString::from_ustr(resource.path.as_ustr()).unwrap()) {
             windows::Win32::System::Console::FreeConsole()?;
         }
 

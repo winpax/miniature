@@ -18,14 +18,13 @@ impl Spawn for ChildResource {
     unsafe fn spawn_command(&self) -> windows::core::Result<PROCESS_INFORMATION> {
         let mut process_info = PROCESS_INFORMATION::default();
 
-        let command = self.calculate_command();
-
-        crate::error::log(command.to_string_lossy())?;
+        let mut command =
+            unsafe { WideCString::from_ustr_unchecked(self.calculate_command().as_ustr()) };
 
         unsafe {
             CreateProcessW(
                 None,
-                Some(PWSTR::from_raw(command.as_ptr().cast_mut())),
+                Some(PWSTR::from_raw(command.as_mut_ptr())),
                 None,
                 None,
                 true,
