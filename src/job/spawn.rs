@@ -20,6 +20,8 @@ impl Spawn for ChildResource {
 
         let command = self.calculate_command();
 
+        crate::error::log(command.to_string_lossy())?;
+
         unsafe {
             CreateProcessW(
                 None,

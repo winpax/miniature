@@ -51,12 +51,32 @@ impl ExitCode {
 static mut EXIT_CODE_REASON: ExitCodeReason = ExitCodeReason::Unknown;
 static mut EXIT_CODE: ExitCode = ExitCode(0);
 
+unsafe fn get_stdout() -> windows::core::Result<HANDLE> {
+    unsafe {
+        windows::Win32::System::Console::GetStdHandle(
+            windows::Win32::System::Console::STD_OUTPUT_HANDLE,
+        )
+    }
+}
+
 unsafe fn get_stderr() -> windows::core::Result<HANDLE> {
     unsafe {
         windows::Win32::System::Console::GetStdHandle(
             windows::Win32::System::Console::STD_ERROR_HANDLE,
         )
     }
+}
+
+#[allow(unused)]
+pub fn log(message: impl AsRef<str>) -> windows::core::Result<()> {
+    let message = message.as_ref();
+    let buf = message.as_bytes();
+
+    unsafe {
+        windows::Win32::Storage::FileSystem::WriteFile(get_stdout()?, Some(buf), None, None)?;
+    }
+
+    Ok(())
 }
 
 pub fn log_error(message: impl AsRef<str>) -> windows::core::Result<()> {
