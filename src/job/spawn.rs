@@ -1,4 +1,5 @@
 use alloc::string::String;
+use widestring::WideCString;
 use windows::{
     Win32::System::Threading::{
         CREATE_SUSPENDED, CreateProcessW, PROCESS_INFORMATION, STARTUPINFOW,
@@ -45,12 +46,14 @@ impl Spawn for ChildResource {
 
         let mut process_info = PROCESS_INFORMATION::default();
 
+        let path = unsafe { WideCString::from_ustr_unchecked(self.path.as_ustr()) };
+        let args = unsafe { WideCString::from_ustr_unchecked(self.args.as_ustr()) };
         let mut execution_info = SHELLEXECUTEINFOW {
             #[allow(clippy::cast_possible_truncation)]
             cbSize: core::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
             fMask: SEE_MASK_NOCLOSEPROCESS,
-            lpFile: PCWSTR::from_raw(self.path.as_ptr()),
-            lpParameters: PCWSTR::from_raw(self.args.as_ptr()),
+            lpFile: PCWSTR::from_raw(path.as_ptr()),
+            lpParameters: PCWSTR::from_raw(args.as_ptr()),
             nShow: SW_SHOW.0,
             ..Default::default()
         };

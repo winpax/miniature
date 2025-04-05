@@ -41,36 +41,38 @@ impl Job {
                 JobObjects::AssignProcessToJobObject, Threading::ResumeThread,
             };
 
-            let command = resource.calculate_command();
+            let process_info = match resource.spawn_command() {
+                Err(err) => {
+                    if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
+                        resource.spawn_shell()?
+                    } else {
+                        let mut output =
+                            String::from("Shim: Could not create process with command ");
+                        output.push_str(&resource.calculate_command().to_string_lossy());
+                        output.push('.');
+                        output.push('\n');
+                        output.push_str("\t\t- Failed with error: ");
+                        output.push_str(&err.message());
+                        output.push('\n');
 
-            let mut process_info = PROCESS_INFORMATION::default();
-
-            if let Err(err) = resource.spawn_command() {
-                if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
-                    process_info = resource.spawn_shell()?;
-                } else {
-                    let mut output = String::from("Shim: Could not create process with command ");
-                    output.push_str(&command.to_string_lossy());
-                    output.push('.');
-                    output.push('\n');
-                    output.push_str("\t\t- Failed with error: ");
-                    output.push_str(&err.message());
-                    output.push('\n');
-
-                    error::log_error(output)?;
-                    error::set_exit_code(1);
-                    error::exit_immediately();
+                        error::log_error(output)?;
+                        error::set_exit_code(1);
+                        error::exit_immediately();
+                    }
                 }
-            } else {
-                AssignProcessToJobObject(self.0, process_info.hProcess)?;
-                // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
-                #[allow(clippy::cast_possible_wrap)]
-                let res = ResumeThread(process_info.hThread) as i32;
+                Ok(process_info) => {
+                    AssignProcessToJobObject(self.0, process_info.hProcess)?;
+                    // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
+                    #[allow(clippy::cast_possible_wrap)]
+                    let res = ResumeThread(process_info.hThread) as i32;
 
-                if res < 0 {
-                    error::handle_windows_error();
+                    if res < 0 {
+                        error::handle_windows_error();
+                    }
+
+                    process_info
                 }
-            }
+            };
 
             if SetConsoleCtrlHandler(Some(super::ctrl_handler), true).is_err() {
                 error::log_error(String::from(
