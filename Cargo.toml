@@ -1,3 +1,6 @@
+[workspace]
+members = ["numin"]
+
 [package]
 edition = "2024"
 name = "miniature"

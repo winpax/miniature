@@ -1,0 +1,14 @@
+[package]
+edition = "2024"
+name = "numin"
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1.0.97"
+clap = { version = "4.5.35", features = ["derive"] }
+widestring = "1.2.0"
+windows = { version = "0.61.1", features = [
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemServices",
+    "Win32_Media_KernelStreaming",
+] }
