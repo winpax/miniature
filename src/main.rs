@@ -7,9 +7,9 @@
 extern crate alloc;
 
 use widestring::U16CString;
-use windows::core::BOOL;
+use windows::{Win32::Foundation::GetLastError, core::BOOL};
 
-use error::{handle_windows_error, set_exit_code};
+use error::{exit_immediately, handle_windows_error, set_exit_code};
 
 mod allocator;
 mod error;
@@ -59,7 +59,12 @@ extern "C" fn wmain() -> u32 {
         Ok(()) => {
             let exit_code = error::get_exit_code();
             if exit_code != 0 {
-                handle_windows_error();
+                let last_error = unsafe { GetLastError() };
+                if last_error.0 != 0 {
+                    handle_windows_error(last_error);
+                }
+                _ = error::log_error("Shim: An error occurred.\n");
+                exit_immediately();
             } else {
                 exit_code
             }

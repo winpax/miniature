@@ -23,6 +23,10 @@ use windows::{
 struct Args {
     #[clap(help = "Name of the shim")]
     name: String,
+
+    #[clap(help = "Path to the executable to shim")]
+    exe: PathBuf,
+
     #[clap(help = "Arguments to pass to the executable from the shim")]
     args: Vec<String>,
 }
@@ -54,8 +58,10 @@ fn main() -> error::Result<()> {
     };
 
     let data = {
+        let c_exe = WideCString::from_os_str(args.exe.as_os_str())?.into_boxed_ucstr();
+
         let mut data = table::StringTable::default();
-        data.set_path(Box::leak(c_path));
+        data.set_path(Box::leak(c_exe));
         data.set_args(Box::leak(
             WideCString::from_os_str(name.as_os_str())?.into_boxed_ucstr(),
         ));
@@ -63,19 +69,17 @@ fn main() -> error::Result<()> {
         data
     };
 
-    type Word = u16;
-
-    let mut table_buffer = Vec::<Word>::new();
+    let mut table_buffer = Vec::<u16>::new();
 
     for entry in data.iter() {
         let entry = *entry;
-        table_buffer.push(entry.len() as Word);
+        table_buffer.push(entry.len() as u16);
 
         let entry_buffer = entry.as_slice_with_nul();
         table_buffer.extend(entry_buffer);
     }
 
-    let table_size = table_buffer.len() * std::mem::size_of::<Word>();
+    let table_size = table_buffer.len() * std::mem::size_of::<u16>();
 
     unsafe {
         UpdateResourceW(

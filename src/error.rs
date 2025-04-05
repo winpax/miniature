@@ -1,7 +1,7 @@
 mod panic;
 
 use alloc::string::String;
-use windows::Win32::Foundation::{GetLastError, HANDLE};
+use windows::Win32::Foundation::{HANDLE, WIN32_ERROR};
 
 pub fn set_exit_code(code: u32) {
     unsafe {
@@ -38,12 +38,7 @@ pub fn exit_immediately() -> ! {
     unsafe { windows::Win32::System::Threading::ExitProcess(get_exit_code()) }
 }
 
-pub fn handle_windows_error() -> ! {
-    let error = unsafe { GetLastError() };
-    if error.0 != 0 {
-        set_exit_code(error.0);
-    }
-
+pub fn handle_windows_error(error: WIN32_ERROR) -> ! {
     let mut output = String::from("Shim: An error occurred.\n");
     output.push_str("\t\t- Failed with error: ");
     output.push_str(&error.to_hresult().message());

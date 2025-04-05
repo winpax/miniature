@@ -1,6 +1,6 @@
 macro_rules! MAKEINTRESOURCE {
     ($x:expr) => {
-        PCWSTR::from_raw($x as *const u16)
+        PCWSTR::from_raw($x as u16 as _)
     };
 }
 
