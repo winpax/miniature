@@ -4,13 +4,6 @@ use widestring::WideCStr;
 use windows::core::PCWSTR;
 
 mod externfns {
-    use core::hint::black_box;
-
-    #[unsafe(no_mangle)]
-    extern "C" fn __chkstk(ptr: usize) {
-        black_box(ptr);
-    }
-
     #[unsafe(no_mangle)]
     extern "C" fn wcslen(ptr: *const u16) -> usize {
         let mut len = 0;
@@ -39,7 +32,7 @@ mod externfns {
     }
 }
 
-pub unsafe fn ris_windows_app(path: impl AsRef<WideCStr>) -> bool {
+pub unsafe fn is_windows_app(path: impl AsRef<WideCStr>) -> bool {
     use windows::Win32::{
         Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
         UI::Shell::{SHFILEINFOW, SHGFI_EXETYPE, SHGetFileInfoW},
@@ -59,7 +52,7 @@ pub unsafe fn ris_windows_app(path: impl AsRef<WideCStr>) -> bool {
     file_info != 0
 }
 
-pub unsafe fn rcompute_program_length(commandline: &[u16]) -> usize {
+pub unsafe fn compute_program_length(commandline: &[u16]) -> usize {
     let mut i = 0usize;
 
     if commandline[0] == ('"' as u16) {

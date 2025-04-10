@@ -41,7 +41,7 @@ unsafe fn main() -> windows::core::Result<()> {
     unsafe {
         let resource = resource::ChildResource::load();
 
-        if !interop::ris_windows_app(WideCString::from_ustr(resource.path.as_ustr()).unwrap()) {
+        if !interop::is_windows_app(WideCString::from_ustr(resource.path.as_ustr()).unwrap()) {
             windows::Win32::System::Console::FreeConsole()?;
         }
 
