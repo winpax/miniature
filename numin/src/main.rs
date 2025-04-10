@@ -43,7 +43,7 @@ fn main() -> error::Result<()> {
 
     let exe = Executable::new();
     let shim = exe.save(&dest_path)?;
-    shim.update_resource(args.into())?;
+    shim.set_resource(args.into())?;
 
     Ok(())
 }

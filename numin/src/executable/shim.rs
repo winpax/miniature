@@ -40,7 +40,7 @@ pub struct Shim {
 }
 
 impl Shim {
-    pub fn update_resource(self, args: ShimArgs) -> error::Result<()> {
+    pub fn set_resource(self, args: ShimArgs) -> error::Result<()> {
         let c_path = WideCString::from_os_str(self.path.as_os_str())?.into_boxed_ucstr();
 
         let Ok(exe_handle) =
