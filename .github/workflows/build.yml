@@ -8,7 +8,7 @@ name: "Build"
 
 jobs:
   build-shim:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.7.8
@@ -16,7 +16,7 @@ jobs:
       - name: Build miniature
         run: cargo build -r
   build-numin:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.7.8
