@@ -34,5 +34,5 @@ windows = { version = "0.61", default-features = false, features = [
 ] }
 
 [build-dependencies]
-which = "7.0.2"
-winres = "0.1.12"
+which = "7.0"
+winres = "0.1"
