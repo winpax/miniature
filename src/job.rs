@@ -41,7 +41,8 @@ impl Job {
                 JobObjects::AssignProcessToJobObject, Threading::ResumeThread,
             };
 
-            let process_info = match resource.spawn_command() {
+            // TODO: Reset to spawn_command
+            let process_info = match resource.spawn_shell() {
                 Err(err) => {
                     if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
                         resource.spawn_shell()?
@@ -62,26 +63,28 @@ impl Job {
                     }
                 }
                 Ok(process_info) => {
-                    AssignProcessToJobObject(self.0, process_info.hProcess)?;
-                    // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
-                    #[allow(clippy::cast_possible_wrap)]
-                    let res = ResumeThread(process_info.hThread) as i32;
+                    if false {
+                        AssignProcessToJobObject(self.0, process_info.hProcess)?;
+                        // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
+                        #[allow(clippy::cast_possible_wrap)]
+                        let res = ResumeThread(process_info.hThread) as i32;
 
-                    if res < 0 {
-                        let last_error = GetLastError();
-                        if last_error.0 != 0 {
-                            error::handle_windows_error(last_error);
-                        } else {
-                            let output =
-                                String::from("Shim: Resuming child failed with unknown error.\n");
+                        if res < 0 {
+                            let last_error = GetLastError();
+                            if last_error.0 != 0 {
+                                error::handle_windows_error(last_error);
+                            } else {
+                                let output = String::from(
+                                    "Shim: Resuming child failed with unknown error.\n",
+                                );
 
-                            error::log_error(output)?;
-                            error::ExitCode::set_code(1);
-                            error::ExitCode::set_reason(error::ExitCodeReason::Unknown);
-                            error::exit_immediately();
+                                error::log_error(output)?;
+                                error::ExitCode::set_code(1);
+                                error::ExitCode::set_reason(error::ExitCodeReason::Unknown);
+                                error::exit_immediately();
+                            }
                         }
                     }
-
                     process_info
                 }
             };
@@ -118,7 +121,10 @@ impl RunningJob {
             let mut exit_code = 0u32;
             GetExitCodeProcess(self.proc_info.hProcess, &mut exit_code)?;
 
-            CloseHandle(self.proc_info.hThread)?;
+            // If spawned with shell, the thread handle is invalid.
+            if !self.proc_info.hThread.is_invalid() {
+                CloseHandle(self.proc_info.hThread)?;
+            }
             CloseHandle(self.proc_info.hProcess)?;
             CloseHandle(self.handle.0)?;
 
