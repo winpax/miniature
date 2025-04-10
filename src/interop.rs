@@ -28,6 +28,9 @@ mod externfns {
 
     #[unsafe(no_mangle)]
     extern "C" fn wcslen(ptr: *const u16) -> usize {
+        if ptr.is_null() {
+            return 0;
+        }
         let mut len = 0;
         while unsafe { *ptr.add(len) } != 0 {
             len += 1;
