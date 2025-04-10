@@ -1,7 +1,11 @@
+[workspace]
+members = ["numin"]
+package.version = "0.0.0"
+
 [package]
 edition = "2024"
 name = "miniature"
-version = "0.1.0"
+version = { workspace = true }
 
 [profile.release]
 codegen-units = 1
@@ -30,5 +34,5 @@ windows = { version = "0.61", default-features = false, features = [
 ] }
 
 [build-dependencies]
-which = "7.0.2"
-winres = "0.1.12"
+which = "7.0"
+winres = "0.1"

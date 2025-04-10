@@ -1,0 +1,20 @@
+[package]
+description = "A library for working with windows shim executables"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+name = "numin"
+repository = "https://github.com/winpax/miniature.git"
+version = { workspace = true }
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+thiserror = "2.0"
+widestring = "1.2"
+windows = { version = "0.61", features = [
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemServices",
+    "Win32_Media_KernelStreaming",
+] }
+
+[build-dependencies]
+reqwest = { version = "0.12", features = ["blocking"] }

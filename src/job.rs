@@ -3,7 +3,7 @@ mod spawn;
 use alloc::string::String;
 use spawn::Spawn;
 use windows::Win32::{
-    Foundation::{ERROR_ELEVATION_REQUIRED, HANDLE},
+    Foundation::{ERROR_ELEVATION_REQUIRED, GetLastError, HANDLE},
     System::{Console::SetConsoleCtrlHandler, Threading::PROCESS_INFORMATION},
 };
 
@@ -56,7 +56,8 @@ impl Job {
                         output.push('\n');
 
                         error::log_error(output)?;
-                        error::set_exit_code(1);
+                        error::ExitCode::set_code(1);
+                        error::ExitCode::set_reason(error::ExitCodeReason::ProcessError);
                         error::exit_immediately();
                     }
                 }
@@ -67,7 +68,18 @@ impl Job {
                     let res = ResumeThread(process_info.hThread) as i32;
 
                     if res < 0 {
-                        error::handle_windows_error();
+                        let last_error = GetLastError();
+                        if last_error.0 != 0 {
+                            error::handle_windows_error(last_error);
+                        } else {
+                            let output =
+                                String::from("Shim: Resuming child failed with unknown error.\n");
+
+                            error::log_error(output)?;
+                            error::ExitCode::set_code(1);
+                            error::ExitCode::set_reason(error::ExitCodeReason::Unknown);
+                            error::exit_immediately();
+                        }
                     }
 
                     process_info

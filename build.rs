@@ -6,7 +6,7 @@ fn main() {
     {
         use which::which;
 
-        let sfsu_path = which("sfsu").expect("sfsu not found");
+        let sfsu_path = which("echo").expect("sfsu not found");
         let path = sfsu_path.display().to_string().replace("\\", "\\\\");
 
         let mut res = winres::WindowsResource::new();
@@ -18,7 +18,7 @@ fn main() {
             STRINGTABLE
             {{
             IDS_PATH, "{path}"
-            IDS_ARGS, "--help"
+            IDS_ARGS, "search sfsu"
             }}
             "##,
         ));

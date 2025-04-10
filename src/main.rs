@@ -6,10 +6,10 @@
 
 extern crate alloc;
 
-use widestring::U16CString;
-use windows::core::BOOL;
+use widestring::WideCString;
+use windows::{Win32::Foundation::GetLastError, core::BOOL};
 
-use error::{handle_windows_error, set_exit_code};
+use error::{ExitCode, exit_immediately, handle_windows_error};
 
 mod allocator;
 mod error;
@@ -38,7 +38,7 @@ unsafe fn main() -> windows::core::Result<()> {
     unsafe {
         let resource = resource::ChildResource::load();
 
-        if !interop::ris_windows_app(U16CString::from_ustr(resource.path.as_ustr()).unwrap()) {
+        if !interop::ris_windows_app(WideCString::from_ustr(resource.path.as_ustr()).unwrap()) {
             windows::Win32::System::Console::FreeConsole()?;
         }
 
@@ -46,7 +46,10 @@ unsafe fn main() -> windows::core::Result<()> {
         let running_job = child.start(&resource)?;
         let exit_code = running_job.wait()?;
 
-        set_exit_code(exit_code);
+        ExitCode::set_code(exit_code);
+        if exit_code != 0 {
+            ExitCode::set_reason(error::ExitCodeReason::ChildError);
+        }
 
         Ok(())
     }
@@ -57,9 +60,16 @@ unsafe fn main() -> windows::core::Result<()> {
 extern "C" fn wmain() -> u32 {
     match unsafe { main() } {
         Ok(()) => {
-            let exit_code = error::get_exit_code();
+            let exit_code = ExitCode::code();
             if exit_code != 0 {
-                handle_windows_error();
+                let last_error = unsafe { GetLastError() };
+                if last_error.0 != 0 {
+                    handle_windows_error(last_error);
+                }
+                if let Some(message) = ExitCode::reason().message() {
+                    _ = error::log_error(message);
+                }
+                exit_immediately();
             } else {
                 exit_code
             }

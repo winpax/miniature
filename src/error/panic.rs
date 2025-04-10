@@ -1,6 +1,4 @@
-use super::{exit_immediately, log_error, set_exit_code};
-
-const PANIC_EXIT_CODE: u32 = u32::from_le_bytes(*b"pnkd");
+use crate::error::{ExitCode, ExitCodeReason, exit_immediately, log_error};
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo<'_>) -> ! {
@@ -11,6 +9,7 @@ fn panic(info: &core::panic::PanicInfo<'_>) -> ! {
         })
         .unwrap_or_default();
 
-    set_exit_code(PANIC_EXIT_CODE);
+    ExitCode::set_code(ExitCode::PANIC_EXIT_CODE);
+    ExitCode::set_reason(ExitCodeReason::Panic);
     exit_immediately();
 }
