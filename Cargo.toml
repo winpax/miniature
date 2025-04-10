@@ -18,6 +18,9 @@ strip = true
 panic = "abort"
 
 [dependencies]
+compiler_builtins_but_not_named_that = { version = "0.1", features = [
+    "mem",
+], package = "compiler_builtins" }
 widestring = { version = "1.2", default-features = false, features = ["alloc"] }
 windows = { version = "0.61", default-features = false, features = [
     "Win32_Security",
@@ -34,5 +37,6 @@ windows = { version = "0.61", default-features = false, features = [
 ] }
 
 [build-dependencies]
+cc = "1.2.18"
 which = "7.0"
 winres = "0.1"

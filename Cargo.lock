@@ -180,6 +180,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
+name = "compiler_builtins"
+version = "0.1.153"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "926ef6a360c15a911023352fd6969c51605d70495406f735beb1ca0257448e59"
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -725,6 +731,8 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 name = "miniature"
 version = "0.1.0"
 dependencies = [
+ "cc",
+ "compiler_builtins",
  "which",
  "widestring",
  "windows",

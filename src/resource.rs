@@ -32,7 +32,7 @@ impl ChildResource {
         let commandline = unsafe { GetCommandLineW() };
 
         let program_length =
-            unsafe { crate::interop::rcompute_program_length(commandline.as_wide()) };
+            unsafe { crate::interop::compute_program_length(commandline.as_wide()) };
 
         let given_command = &unsafe { commandline.as_wide() }[program_length..];
 
