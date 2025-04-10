@@ -7,6 +7,7 @@ macro_rules! MAKEINTRESOURCE {
 pub(crate) use MAKEINTRESOURCE;
 
 #[allow(non_snake_case)]
+#[allow(clippy::cast_possible_truncation)]
 pub const fn MAKELANGID(primary: u32, sub: u32) -> u16 {
     (sub as u16) << 10 | (primary as u16)
 }

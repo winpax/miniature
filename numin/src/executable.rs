@@ -16,6 +16,7 @@ impl Default for Executable {
 }
 
 impl Executable {
+    #[must_use]
     pub const fn new() -> Self {
         Executable(MINIATURE)
     }

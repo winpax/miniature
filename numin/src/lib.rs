@@ -1,4 +1,6 @@
 #![warn(
+    clippy::pedantic,
+    clippy::all,
     missing_debug_implementations,
     missing_copy_implementations,
     // missing_docs

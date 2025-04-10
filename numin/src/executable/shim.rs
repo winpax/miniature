@@ -15,18 +15,22 @@ use windows::{
 use crate::{
     error,
     interop::{MAKEINTRESOURCE, MAKELANGID},
-    table,
+    table::StringTable,
 };
 
 #[derive(Debug, Clone)]
 pub struct ShimArgs {
-    target: PathBuf,
-    args: Vec<String>,
+    pub(crate) target: PathBuf,
+    pub(crate) args: Vec<String>,
 }
 
 impl ShimArgs {
-    pub fn new(target: PathBuf, args: Vec<String>) -> Self {
-        Self { target, args }
+    #[must_use]
+    pub fn new(target: impl Into<PathBuf>, args: Vec<String>) -> Self {
+        Self {
+            target: target.into(),
+            args,
+        }
     }
 }
 
@@ -48,38 +52,19 @@ impl Shim {
             return Ok(());
         };
 
-        let data = {
-            let c_exe = WideCString::from_os_str(args.target.as_os_str())?.into_boxed_ucstr();
-            let c_args = WideCString::from_str(args.args.join(" "))?.into_boxed_ucstr();
-
-            let mut data = table::StringTable::default();
-            data.set_path(Box::leak(c_exe));
-            data.set_args(Box::leak(c_args));
-
-            data
-        };
-
-        let mut table_buffer = Vec::<u16>::new();
-
-        for entry in data.iter() {
-            let entry = *entry;
-            table_buffer.push((entry.len() + 1) as u16);
-
-            let entry_buffer = entry.as_slice_with_nul();
-            table_buffer.extend(entry_buffer);
-        }
-
-        let table_size = table_buffer.len() * std::mem::size_of::<u16>();
+        let table = StringTable::try_from(args)?;
+        let table_buffer = table.get_buffer();
 
         unsafe {
+            #[allow(clippy::cast_possible_truncation)]
             UpdateResourceW(
                 exe_handle,
                 RT_STRING,
-                MAKEINTRESOURCE!(1),
-                MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                const { MAKEINTRESOURCE!(1) },
+                const { MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL) },
                 Some(table_buffer.as_ptr().cast()),
-                table_size as u32,
-            )?
+                (table_buffer.len() * std::mem::size_of::<u16>()) as u32,
+            )?;
         };
 
         unsafe { EndUpdateResourceW(exe_handle, false)? };

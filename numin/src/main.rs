@@ -1,3 +1,10 @@
+#![warn(
+    clippy::pedantic,
+    clippy::all,
+    missing_debug_implementations,
+    missing_copy_implementations
+)]
+
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -11,13 +18,17 @@ struct Args {
     #[clap(help = "Path to the executable to shim")]
     target: PathBuf,
 
-    #[clap(help = "Arguments to pass to the executable from the shim")]
-    args: Vec<String>,
+    #[allow(clippy::struct_field_names)]
+    #[clap(
+        help = "Arguments to pass to the executable from the shim",
+        value_name = "ARGS"
+    )]
+    shim_args: Vec<String>,
 }
 
 impl From<Args> for ShimArgs {
     fn from(args: Args) -> Self {
-        ShimArgs::new(args.target, args.args)
+        ShimArgs::new(args.target, args.shim_args)
     }
 }
 
