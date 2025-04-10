@@ -1,3 +1,5 @@
+//! Handles updating a shim executable that is saved locally on disk
+
 use std::path::PathBuf;
 
 use widestring::WideCString;
@@ -19,6 +21,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+/// Arguments to be passed to the shim executable.
 pub struct ShimArgs {
     pub(crate) target: PathBuf,
     pub(crate) args: Vec<String>,
@@ -26,6 +29,7 @@ pub struct ShimArgs {
 
 impl ShimArgs {
     #[must_use]
+    /// Creates a new [`ShimArgs`] instance with the given target and arguments.
     pub fn new(target: impl Into<PathBuf>, args: Vec<String>) -> Self {
         Self {
             target: target.into(),
@@ -35,11 +39,19 @@ impl ShimArgs {
 }
 
 #[derive(Debug, Clone)]
+/// Locally saved shim executable ready to be updated with the given arguments.
 pub struct Shim {
     pub(crate) path: PathBuf,
 }
 
 impl Shim {
+    /// Update the string table section of the executable with the given arguments.
+    ///
+    /// # Errors
+    /// Converting the path to a wide c string may fail if it contains nul terminators within the string.
+    /// See [`widestring::error::ContainsNul`] for more details.
+    ///
+    /// Internal Windows errors also may occur, see [`windows::core::Error`] for more details.
     pub fn set_resource(self, args: ShimArgs) -> error::Result<()> {
         let c_path = WideCString::from_os_str(self.path.as_os_str())?.into_boxed_ucstr();
 
