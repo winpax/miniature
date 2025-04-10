@@ -7,7 +7,6 @@ use shim::Shim;
 use crate::error;
 
 static MINIATURE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/miniature.exe"));
-pub(crate) const DEFAULT_MINIATURE: Executable = Executable::new(MINIATURE);
 
 #[derive(Debug, Copy, Clone)]
 /// Shim executable data
@@ -15,16 +14,13 @@ pub struct Executable(&'static [u8]);
 
 impl Default for Executable {
     fn default() -> Self {
-        Executable::const_default()
+        Executable::DEFAULT
     }
 }
 
 impl Executable {
-    #[must_use]
-    /// Creates a new [`Executable`] instance with the default data.
-    pub const fn const_default() -> Self {
-        DEFAULT_MINIATURE
-    }
+    /// Default [`Executable`] instance with the default binary data.
+    pub const DEFAULT: Executable = Executable::new(MINIATURE);
 
     #[must_use]
     /// Constructs a custom [`Executable`] instance with the given binary data.
