@@ -1,23 +1,7 @@
-mod error;
-mod interop;
-mod miniature;
-mod table;
-
 use std::path::PathBuf;
 
 use clap::Parser;
-use interop::{MAKEINTRESOURCE, MAKELANGID};
-use widestring::WideCString;
-use windows::{
-    Win32::{
-        Media::KernelStreaming::RT_STRING,
-        System::{
-            LibraryLoader::{BeginUpdateResourceW, EndUpdateResourceW, UpdateResourceW},
-            SystemServices::{LANG_NEUTRAL, SUBLANG_NEUTRAL},
-        },
-    },
-    core::PCWSTR,
-};
+use numin::{Executable, error, shim::ShimArgs};
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -25,71 +9,30 @@ struct Args {
     name: String,
 
     #[clap(help = "Path to the executable to shim")]
-    exe: PathBuf,
+    target: PathBuf,
 
     #[clap(help = "Arguments to pass to the executable from the shim")]
     args: Vec<String>,
+}
+
+impl From<Args> for ShimArgs {
+    fn from(args: Args) -> Self {
+        ShimArgs::new(args.target, args.args)
+    }
 }
 
 fn main() -> error::Result<()> {
     let args = Args::parse();
 
     if matches!(PathBuf::from(&args.name).try_exists(), Ok(true)) {
-        Err(anyhow::anyhow!(
-            "Path already exists, cannot create a new shim!"
-        ))?;
+        Err(error::Error::AlreadyExists)?;
     }
 
     let dest_path = PathBuf::from(&args.name).with_extension("exe");
 
-    let exe = miniature::Executable::new();
-    exe.save(&dest_path)?;
-
-    let c_path = WideCString::from_os_str(dest_path.as_os_str())?.into_boxed_ucstr();
-
-    let Ok(exe_handle) = (unsafe { BeginUpdateResourceW(PCWSTR::from_raw(c_path.as_ptr()), true) })
-    else {
-        let error = windows::core::Error::from_win32();
-        let error = error.message();
-        println!("Failed to create the executable: {error}");
-        return Ok(());
-    };
-
-    let data = {
-        let c_exe = WideCString::from_os_str(args.exe.as_os_str())?.into_boxed_ucstr();
-        let c_args = WideCString::from_str(args.args.join(" "))?.into_boxed_ucstr();
-
-        let mut data = table::StringTable::default();
-        data.set_path(Box::leak(c_exe));
-        data.set_args(Box::leak(c_args));
-
-        data
-    };
-
-    let mut table_buffer = Vec::<u16>::new();
-
-    for entry in data.iter() {
-        let entry = *entry;
-        table_buffer.push((entry.len() + 1) as u16);
-
-        let entry_buffer = entry.as_slice_with_nul();
-        table_buffer.extend(entry_buffer);
-    }
-
-    let table_size = table_buffer.len() * std::mem::size_of::<u16>();
-
-    unsafe {
-        UpdateResourceW(
-            exe_handle,
-            RT_STRING,
-            MAKEINTRESOURCE!(1),
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-            Some(table_buffer.as_ptr().cast()),
-            table_size as u32,
-        )?
-    };
-
-    unsafe { EndUpdateResourceW(exe_handle, false)? };
+    let exe = Executable::new();
+    let shim = exe.save(&dest_path)?;
+    shim.update_resource(args.into())?;
 
     Ok(())
 }
