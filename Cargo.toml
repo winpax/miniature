@@ -1,6 +1,6 @@
 [workspace]
 members = ["numin"]
-package.version = "0.0.0"
+package.version = "0.1.0"
 
 [package]
 edition = "2024"
