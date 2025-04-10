@@ -1,0 +1,25 @@
+on:
+  push:
+  pull_request:
+    branches:
+      - trunk
+
+name: "Build"
+
+jobs:
+  build-shim:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
+
+      - name: Build miniature
+        run: cargo build -r
+  build-numin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
+
+      - name: Build Numin
+        run: cargo build -r -p numin
