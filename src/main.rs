@@ -3,6 +3,9 @@
 #![no_main]
 #![no_std]
 #![feature(let_chains)]
+#![feature(rustc_private)]
+
+extern crate compiler_builtins_but_not_named_that;
 
 extern crate alloc;
 
@@ -57,7 +60,7 @@ unsafe fn main() -> windows::core::Result<()> {
 
 #[unsafe(no_mangle)]
 #[allow(clippy::similar_names)]
-extern "C" fn wmain() -> u32 {
+extern "C" fn entry() -> u32 {
     match unsafe { main() } {
         Ok(()) => {
             let exit_code = ExitCode::code();

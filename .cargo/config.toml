@@ -1,5 +1,9 @@
 [build]
-rustflags = ["-Zlocation-detail=none", "-Cpanic=abort"]
+rustflags = [
+    "-Zlocation-detail=none",
+    "-Cpanic=abort",
+    "-Ctarget-feature=+crt-static",
+]
 target = "x86_64-pc-windows-msvc"
 
 [unstable]

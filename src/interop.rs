@@ -3,6 +3,42 @@
 use widestring::WideCStr;
 use windows::core::PCWSTR;
 
+mod externfns {
+    use core::hint::black_box;
+
+    #[unsafe(no_mangle)]
+    extern "C" fn __chkstk(ptr: usize) {
+        black_box(ptr);
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn wcslen(ptr: *const u16) -> usize {
+        let mut len = 0;
+        while unsafe { *ptr.add(len) } != 0 {
+            len += 1;
+        }
+        len
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn fma(x: f64, y: f64, z: f64) -> f64 {
+        let mut result = x * y + z;
+        if result.is_nan() {
+            result = 0.0;
+        }
+        result
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn fmaf(x: f32, y: f32, z: f32) -> f32 {
+        let mut result = x * y + z;
+        if result.is_nan() {
+            result = 0.0;
+        }
+        result
+    }
+}
+
 pub unsafe fn ris_windows_app(path: impl AsRef<WideCStr>) -> bool {
     use windows::Win32::{
         Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
