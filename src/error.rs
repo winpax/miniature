@@ -8,7 +8,6 @@ pub enum ExitCodeReason {
     Unknown,
     ChildError,
     ProcessError,
-    Panic,
 }
 
 impl ExitCodeReason {
@@ -16,7 +15,7 @@ impl ExitCodeReason {
         match self {
             ExitCodeReason::Unknown => Some("Shim: Unknown error\n"),
             ExitCodeReason::ProcessError => Some("Shim: Process error\n"),
-            ExitCodeReason::ChildError | ExitCodeReason::Panic => None,
+            ExitCodeReason::ChildError => None,
         }
     }
 }
@@ -25,8 +24,6 @@ impl ExitCodeReason {
 pub struct ExitCode(u32);
 
 impl ExitCode {
-    pub const PANIC_EXIT_CODE: u32 = u32::from_le_bytes(*b"pnkd");
-
     pub fn code() -> u32 {
         unsafe { EXIT_CODE.0 }
     }

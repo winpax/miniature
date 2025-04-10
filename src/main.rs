@@ -58,7 +58,6 @@ unsafe fn main() -> windows::core::Result<()> {
 #[unsafe(no_mangle)]
 #[allow(clippy::similar_names)]
 extern "C" fn wmain() -> u32 {
-    panic!();
     match unsafe { main() } {
         Ok(()) => {
             let exit_code = ExitCode::code();
