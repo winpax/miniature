@@ -41,7 +41,7 @@ fn main() -> error::Result<()> {
 
     let dest_path = PathBuf::from(&args.name).with_extension("exe");
 
-    let exe = const { Executable::const_default() };
+    let exe = Executable::default();
     let shim = exe.save(&dest_path)?;
     shim.set_resource(args.into())?;
 
