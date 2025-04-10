@@ -19,7 +19,6 @@ panic = "abort"
 
 [dependencies]
 compiler_builtins_but_not_named_that = { version = "0.1", features = [
-    "c",
     "mem",
 ], package = "compiler_builtins" }
 widestring = { version = "1.2", default-features = false, features = ["alloc"] }
