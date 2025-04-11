@@ -36,6 +36,10 @@ fn main() {
 
         println!("cargo:rerun-if-changed={}", path.display());
     } else {
+        if cfg!(not(debug_assertions)) {
+            println!("cargo::warning=Downloading latest build in release mode");
+        }
+
         let download_url = concat!(
             "https://github.com/winpax/miniature/releases/download/v",
             env!("CARGO_PKG_VERSION"),
