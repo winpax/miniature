@@ -8,7 +8,7 @@ pub struct ExeType {
     loword: u16,
 }
 
-impl std::fmt::Debug for ExeType {
+impl core::fmt::Debug for ExeType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         fn format_bytes(bytes: &[u8]) -> String {
             bytes.iter().map(|byte| char::from(*byte)).collect()
