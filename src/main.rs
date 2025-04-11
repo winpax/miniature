@@ -16,6 +16,7 @@ use windows::{
 };
 
 use error::{ExitCode, handle_windows_error};
+use exe_type::ExeType;
 
 mod allocator;
 mod error;
@@ -45,8 +46,9 @@ unsafe fn main() -> windows::core::Result<()> {
     unsafe {
         let resource = resource::ChildResource::load();
 
-        if exe_type::ExeType::from_path(WideCString::from_ustr(resource.path.as_ustr()).unwrap())
-            .is_windows()
+        if let Some(exe_type) =
+            ExeType::from_path(WideCString::from_ustr_unchecked(resource.path.as_ustr()))
+            && exe_type.is_windows()
         {
             windows::Win32::System::Console::FreeConsole()?;
         }

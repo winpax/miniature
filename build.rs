@@ -13,10 +13,8 @@ fn main() {
 
     #[cfg(debug_assertions)]
     {
-        use which::which;
-
         let exe_path = PathBuf::from("C:\\Users\\julie\\scoop\\apps\\figma\\current\\Figma.exe");
-        // let exe_path = which("echo").expect("echo not found");
+        // let exe_path = which::which("echo").expect("echo not found");
         let path = exe_path.display().to_string().replace("\\", "\\\\");
 
         let mut res = winres::WindowsResource::new();

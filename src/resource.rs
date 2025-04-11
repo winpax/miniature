@@ -55,11 +55,11 @@ unsafe fn load_resource_string(id: u32) -> WideString {
         let mut buffer = [PWSTR::null(); 1];
         let buffer_pointer: PWSTR = PWSTR::from_raw(buffer.as_mut_ptr().cast());
 
-        #[allow(clippy::cast_sign_loss)]
-        let characters = LoadStringW(None, id, buffer_pointer, 0) as usize;
+        let characters = LoadStringW(None, id, buffer_pointer, 0);
 
         let [actual_string] = buffer;
 
-        WideString::from_ptr(actual_string.as_ptr(), characters)
+        #[allow(clippy::cast_sign_loss)]
+        WideString::from_ptr(actual_string.as_ptr(), characters as usize)
     }
 }

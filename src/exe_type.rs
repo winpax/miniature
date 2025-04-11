@@ -3,13 +3,12 @@ use widestring::WideCStr;
 use crate::interop::{hiword, loword};
 
 pub struct ExeType {
-    file_info: usize,
     hiword: u16,
     loword: u16,
 }
 
 impl ExeType {
-    pub fn from_path(path: impl AsRef<WideCStr>) -> Self {
+    pub fn from_path(path: impl AsRef<WideCStr>) -> Option<Self> {
         use windows::{
             Win32::{
                 Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
@@ -30,19 +29,14 @@ impl ExeType {
             )
         };
 
-        Self {
-            file_info,
+        if file_info == 0 {
+            return None;
+        }
+
+        Some(Self {
             hiword: unsafe { hiword(file_info) },
             loword: unsafe { loword(file_info) },
-        }
-    }
-
-    pub fn windows_app(&self) -> bool {
-        let is_msdos = self.is_msdos();
-        let is_console = self.is_console();
-        let is_windows = self.is_windows();
-
-        self.file_info != 0
+        })
     }
 
     #[allow(unused)]
