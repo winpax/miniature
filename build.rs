@@ -8,10 +8,22 @@ fn main() {
 
     #[cfg(debug_assertions)]
     {
-        let exe_path =
-            std::path::PathBuf::from("C:\\Users\\julie\\scoop\\apps\\figma\\current\\Figma.exe");
-        // let exe_path = which::which("echo").expect("echo not found");
-        let path = exe_path.display().to_string().replace("\\", "\\\\");
+        use std::{env, path::PathBuf};
+
+        let exe_path = PathBuf::from(env::var("DEBUG_SHIM_TARGET").unwrap_or("echo".to_string()));
+        let args = env::var("DEBUG_SHIM_ARGS").unwrap_or("miniature called how cool".to_string());
+
+        println!("cargo:rerun-if-env-changed=DEBUG_SHIM_TARGET");
+        println!("cargo:rerun-if-env-changed=DEBUG_SHIM_ARGS");
+
+        let absolute_path = if !exe_path.is_absolute() {
+            which::which(&exe_path)
+                .unwrap_or_else(|_| panic!("Could not find executable: {}", exe_path.display()))
+        } else {
+            exe_path
+        };
+
+        println!("cargo:rerun-if-changed={}", absolute_path.display());
 
         let mut res = winres::WindowsResource::new();
         res.append_rc_content(&format!(
@@ -22,9 +34,10 @@ fn main() {
             STRINGTABLE
             {{
             IDS_PATH, "{path}"
-            IDS_ARGS, "search sfsu"
+            IDS_ARGS, "{args}"
             }}
             "##,
+            path = absolute_path.display().to_string().replace("\\", "\\\\"),
         ));
         res.compile().unwrap();
     }
