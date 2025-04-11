@@ -4,7 +4,8 @@ use windows::{
     Win32::{
         Foundation::HANDLE,
         System::Threading::{
-            CREATE_SUSPENDED, CreateProcessW, PROCESS_INFORMATION, ResumeThread, STARTUPINFOW,
+            CREATE_SUSPENDED, CreateProcessW, GetStartupInfoW, PROCESS_INFORMATION, ResumeThread,
+            STARTUPINFOW,
         },
     },
     core::{PCWSTR, PWSTR},
@@ -35,6 +36,11 @@ pub trait Spawn {
 impl Spawn for ChildResource {
     unsafe fn spawn_command(&self) -> windows::core::Result<SpawnedChild> {
         let mut process_info = PROCESS_INFORMATION::default();
+        let startup_information = {
+            let mut info = STARTUPINFOW::default();
+            unsafe { GetStartupInfoW(&mut info) };
+            info
+        };
 
         let mut command =
             unsafe { WideCString::from_ustr_unchecked(self.calculate_command().as_ustr()) };
@@ -49,7 +55,7 @@ impl Spawn for ChildResource {
                 CREATE_SUSPENDED,
                 None,
                 None,
-                &STARTUPINFOW::default(),
+                &startup_information,
                 &mut process_info,
             )?;
         };

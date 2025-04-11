@@ -37,9 +37,6 @@ impl Job {
 
     pub unsafe fn start(self, resource: &ChildResource) -> windows::core::Result<RunningJob> {
         unsafe {
-            use windows::Win32::System::JobObjects::AssignProcessToJobObject;
-
-            // TODO: Reset to spawn_command
             let process_info = match resource.spawn_command() {
                 Err(err) => {
                     if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
@@ -59,11 +56,7 @@ impl Job {
                         error::exit_immediately();
                     }
                 }
-                Ok(process_info) => {
-                    AssignProcessToJobObject(self.0, process_info.process_handle())?;
-
-                    process_info
-                }
+                Ok(process_info) => process_info,
             };
 
             if SetConsoleCtrlHandler(Some(super::ctrl_handler), true).is_err() {
@@ -90,8 +83,13 @@ impl RunningJob {
         unsafe {
             use windows::Win32::{
                 Foundation::CloseHandle,
-                System::Threading::{GetExitCodeProcess, INFINITE, WaitForSingleObject},
+                System::{
+                    JobObjects::AssignProcessToJobObject,
+                    Threading::{GetExitCodeProcess, INFINITE, WaitForSingleObject},
+                },
             };
+
+            AssignProcessToJobObject(self.handle.0, self.process_info.process_handle())?;
 
             WaitForSingleObject(self.process_info.process_handle(), INFINITE);
 
