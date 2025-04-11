@@ -52,7 +52,6 @@ unsafe fn main() -> windows::core::Result<()> {
             }
         } else {
             error::log_error("Shim: Could not determine executable type.\n")?;
-            error::ExitCode::set_reason(error::ExitCode::ChildError);
         }
 
         let child = job::Job::new()?;
