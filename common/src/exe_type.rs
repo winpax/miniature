@@ -1,3 +1,4 @@
+use alloc::string::String;
 use widestring::WideCStr;
 
 use crate::interop::{hiword, loword};
@@ -9,7 +10,7 @@ pub struct ExeType {
 
 impl std::fmt::Debug for ExeType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fn format_bytes(bytes: &[u8]) -> alloc::string::String {
+        fn format_bytes(bytes: &[u8]) -> String {
             bytes.iter().map(|byte| char::from(*byte)).collect()
         }
 
