@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Build miniature
+        run: cargo b --release --locked
+
+      - name: Build Numin
+        env:
+          MINIATURE_EXE_PATH: ${{ github.workspace }}target/x86_64-pc-windows-msvc/miniature.exe
+        run: cargo b --release --locked -p numin
+
+      - name: Upload & Publish
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          files: |
+            target/x86_64-pc-windows-msvc/*.exe
+
+      - name: VirusTotal Scan
+        continue-on-error: true
+        uses: crazy-max/ghaction-virustotal@v4
+        with:
+          update_release_body: true
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            .exe$
