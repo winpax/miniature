@@ -10,9 +10,12 @@ extern crate compiler_builtins_but_not_named_that;
 extern crate alloc;
 
 use widestring::WideCString;
-use windows::{Win32::Foundation::GetLastError, core::BOOL};
+use windows::{
+    Win32::{Foundation::GetLastError, System::Threading::ExitProcess},
+    core::BOOL,
+};
 
-use error::{ExitCode, exit_immediately, handle_windows_error};
+use error::{ExitCode, handle_windows_error};
 
 mod allocator;
 mod error;
@@ -60,11 +63,10 @@ unsafe fn main() -> windows::core::Result<()> {
 
 #[unsafe(no_mangle)]
 #[allow(clippy::similar_names)]
-extern "C" fn entry() -> u32 {
+extern "C" fn entry() -> ! {
     match unsafe { main() } {
         Ok(()) => {
-            let exit_code = ExitCode::code();
-            if exit_code != 0 {
+            if ExitCode::code() != 0 {
                 let last_error = unsafe { GetLastError() };
                 if last_error.0 != 0 {
                     handle_windows_error(last_error);
@@ -72,15 +74,15 @@ extern "C" fn entry() -> u32 {
                 if let Some(message) = ExitCode::reason().message() {
                     _ = error::log_error(message);
                 }
-                exit_immediately();
-            } else {
-                exit_code
             }
         }
         #[allow(clippy::cast_sign_loss)]
         Err(e) => {
             _ = error::log_error(e.message());
-            e.code().0 as u32
+            ExitCode::set_code(e.code().0 as u32);
+            ExitCode::set_reason(error::ExitCodeReason::Unknown);
         }
     }
+
+    unsafe { ExitProcess(ExitCode::code()) }
 }
