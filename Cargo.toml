@@ -1,5 +1,5 @@
 [workspace]
-members = ["numin"]
+members = ["common", "numin"]
 package.version = "0.1.2"
 
 [package]
@@ -18,6 +18,7 @@ strip = true
 panic = "abort"
 
 [dependencies]
+common = { path = "./common" }
 compiler_builtins_but_not_named_that = { version = "0.1", features = [
     "mem",
 ], package = "compiler_builtins" }

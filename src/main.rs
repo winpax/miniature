@@ -15,12 +15,11 @@ use windows::{
     core::BOOL,
 };
 
+use common::exe_type::ExeType;
 use error::{ExitCode, handle_windows_error};
 
 mod allocator;
 mod error;
-mod exe_type;
-mod interop;
 mod job;
 mod resource;
 
@@ -45,10 +44,14 @@ unsafe fn main() -> windows::core::Result<()> {
     unsafe {
         let resource = resource::ChildResource::load();
 
-        if !exe_type::ExeType::from_path(WideCString::from_ustr(resource.path.as_ustr()).unwrap())
-            .windows_app()
+        if let Some(exe_type) =
+            ExeType::from_path(WideCString::from_ustr_unchecked(resource.path.as_ustr()))
         {
-            windows::Win32::System::Console::FreeConsole()?;
+            if exe_type.is_windows() {
+                windows::Win32::System::Console::FreeConsole()?;
+            }
+        } else {
+            error::log_error("Shim: Could not determine executable type.\n")?;
         }
 
         let child = job::Job::new()?;

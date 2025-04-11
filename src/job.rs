@@ -1,10 +1,10 @@
 mod spawn;
 
 use alloc::string::String;
-use spawn::Spawn;
+use spawn::{Spawn, SpawnedChild};
 use windows::Win32::{
-    Foundation::{ERROR_ELEVATION_REQUIRED, GetLastError, HANDLE},
-    System::{Console::SetConsoleCtrlHandler, Threading::PROCESS_INFORMATION},
+    Foundation::{ERROR_ELEVATION_REQUIRED, HANDLE},
+    System::Console::SetConsoleCtrlHandler,
 };
 
 use crate::{error, resource::ChildResource};
@@ -37,11 +37,6 @@ impl Job {
 
     pub unsafe fn start(self, resource: &ChildResource) -> windows::core::Result<RunningJob> {
         unsafe {
-            use windows::Win32::System::{
-                JobObjects::AssignProcessToJobObject, Threading::ResumeThread,
-            };
-
-            // TODO: Reset to spawn_command
             let process_info = match resource.spawn_command() {
                 Err(err) => {
                     if err.code() == ERROR_ELEVATION_REQUIRED.to_hresult() {
@@ -61,28 +56,7 @@ impl Job {
                         error::exit_immediately();
                     }
                 }
-                Ok(process_info) => {
-                    AssignProcessToJobObject(self.0, process_info.hProcess)?;
-                    // Cast occurs here because ResumeThread returns a DWORD, but errors return -1.
-                    #[allow(clippy::cast_possible_wrap)]
-                    let res = ResumeThread(process_info.hThread) as i32;
-
-                    if res < 0 {
-                        let last_error = GetLastError();
-                        if last_error.0 != 0 {
-                            error::handle_windows_error(last_error);
-                        } else {
-                            let output =
-                                String::from("Shim: Resuming child failed with unknown error.\n");
-
-                            error::log_error(output)?;
-                            error::ExitCode::set_reason(error::ExitCode::Unknown(1));
-                            error::exit_immediately();
-                        }
-                    }
-
-                    process_info
-                }
+                Ok(process_info) => process_info,
             };
 
             if SetConsoleCtrlHandler(Some(super::ctrl_handler), true).is_err() {
@@ -93,7 +67,7 @@ impl Job {
 
             Ok(RunningJob {
                 handle: self,
-                proc_info: process_info,
+                process_info,
             })
         }
     }
@@ -101,7 +75,7 @@ impl Job {
 
 pub struct RunningJob {
     handle: Job,
-    proc_info: PROCESS_INFORMATION,
+    process_info: SpawnedChild,
 }
 
 impl RunningJob {
@@ -109,20 +83,25 @@ impl RunningJob {
         unsafe {
             use windows::Win32::{
                 Foundation::CloseHandle,
-                System::Threading::{GetExitCodeProcess, INFINITE, WaitForSingleObject},
+                System::{
+                    JobObjects::AssignProcessToJobObject,
+                    Threading::{GetExitCodeProcess, INFINITE, WaitForSingleObject},
+                },
             };
 
-            WaitForSingleObject(self.proc_info.hProcess, INFINITE);
+            AssignProcessToJobObject(self.handle.0, self.process_info.process_handle())?;
+
+            WaitForSingleObject(self.process_info.process_handle(), INFINITE);
 
             let mut exit_code = 0u32;
-            GetExitCodeProcess(self.proc_info.hProcess, &mut exit_code)?;
+            GetExitCodeProcess(self.process_info.process_handle(), &mut exit_code)?;
 
-            // If spawned with shell, the thread handle is invalid.
-            if !self.proc_info.hThread.is_invalid() {
-                CloseHandle(self.proc_info.hThread)?;
-            }
-            CloseHandle(self.proc_info.hProcess)?;
+            CloseHandle(self.process_info.process_handle())?;
             CloseHandle(self.handle.0)?;
+
+            if let Some(thread_handle) = self.process_info.thread_handle() {
+                CloseHandle(thread_handle)?;
+            }
 
             Ok(exit_code)
         }

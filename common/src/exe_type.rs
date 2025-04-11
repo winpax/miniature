@@ -3,13 +3,12 @@ use widestring::WideCStr;
 use crate::interop::{hiword, loword};
 
 pub struct ExeType {
-    file_info: usize,
     hiword: u16,
     loword: u16,
 }
 
 impl ExeType {
-    pub fn from_path(path: impl AsRef<WideCStr>) -> Self {
+    pub fn from_path(path: impl AsRef<WideCStr>) -> Option<Self> {
         use windows::{
             Win32::{
                 Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
@@ -20,6 +19,7 @@ impl ExeType {
 
         let mut file_info = SHFILEINFOW::default();
 
+        #[allow(clippy::cast_possible_truncation)]
         let file_info = unsafe {
             SHGetFileInfoW(
                 PCWSTR::from_raw(path.as_ref().as_ptr()),
@@ -30,28 +30,30 @@ impl ExeType {
             )
         };
 
-        Self {
-            file_info,
+        if file_info == 0 {
+            return None;
+        }
+
+        Some(Self {
             hiword: unsafe { hiword(file_info) },
             loword: unsafe { loword(file_info) },
-        }
-    }
-
-    pub fn windows_app(&self) -> bool {
-        self.file_info != 0
+        })
     }
 
     #[allow(unused)]
+    #[must_use]
     pub fn is_msdos(&self) -> bool {
         self.loword == MZ
     }
 
     #[allow(unused)]
+    #[must_use]
     pub fn is_console(&self) -> bool {
         self.loword == PE && self.hiword == 0
     }
 
     #[allow(unused)]
+    #[must_use]
     pub fn is_windows(&self) -> bool {
         (self.loword == PE || self.loword == NE) && self.hiword != 0
     }

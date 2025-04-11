@@ -60,7 +60,8 @@ unsafe extern "C" {
     pub fn hiword(dword: usize) -> u16;
 }
 
-pub unsafe fn compute_program_length(commandline: &[u16]) -> usize {
+#[must_use]
+pub fn compute_program_length(commandline: &[u16]) -> usize {
     let mut i = 0usize;
 
     if commandline[0] == ('"' as u16) {
