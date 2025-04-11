@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 #[cfg(debug_assertions)]
 include!("./src/resource/ids.rs");
 
@@ -13,7 +11,8 @@ fn main() {
 
     #[cfg(debug_assertions)]
     {
-        let exe_path = PathBuf::from("C:\\Users\\julie\\scoop\\apps\\figma\\current\\Figma.exe");
+        let exe_path =
+            std::path::PathBuf::from("C:\\Users\\julie\\scoop\\apps\\figma\\current\\Figma.exe");
         // let exe_path = which::which("echo").expect("echo not found");
         let path = exe_path.display().to_string().replace("\\", "\\\\");
 
