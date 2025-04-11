@@ -3,6 +3,11 @@ edition = "2024"
 name = "common"
 version.workspace = true
 
+[features]
+crt_functions = []
+default = ["std"]
+std = []
+
 [dependencies]
 widestring = { version = "1.2.0", default-features = false, features = [
     "alloc",
@@ -10,6 +15,7 @@ widestring = { version = "1.2.0", default-features = false, features = [
 windows = { version = "0.61.1", default-features = false, features = [
     "Win32_Storage_FileSystem",
     "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
 ] }
 
 [build-dependencies]

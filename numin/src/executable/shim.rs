@@ -1,6 +1,6 @@
 //! Handles updating a shim executable that is saved locally on disk
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use widestring::WideCString;
 use windows::{
@@ -45,6 +45,12 @@ pub struct Shim {
 }
 
 impl Shim {
+    #[must_use]
+    /// Get the path to the shim executable.
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
     /// Update the string table section of the executable with the given arguments.
     ///
     /// # Errors
@@ -52,7 +58,7 @@ impl Shim {
     /// See [`widestring::error::ContainsNul`] for more details.
     ///
     /// Internal Windows errors also may occur, see [`windows::core::Error`] for more details.
-    pub fn set_resource(self, args: ShimArgs) -> error::Result<()> {
+    pub fn set_resource(&self, args: ShimArgs) -> error::Result<()> {
         let c_path = WideCString::from_os_str(self.path.as_os_str())?.into_boxed_ucstr();
 
         let Ok(exe_handle) =

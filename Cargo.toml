@@ -18,7 +18,9 @@ strip = true
 panic = "abort"
 
 [dependencies]
-common = { path = "./common" }
+common = { path = "./common", default-features = false, features = [
+    "crt_functions",
+] }
 compiler_builtins_but_not_named_that = { version = "0.1", features = [
     "mem",
 ], package = "compiler_builtins" }

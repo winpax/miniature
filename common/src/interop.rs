@@ -1,5 +1,6 @@
 //! Both functions in this file are ported almost directly from the original <https://github.com/71/scoop-better-shimexe/blob/master/shim.c>
 
+#[cfg(feature = "crt_functions")]
 mod externfns {
     trait Float:
         Copy

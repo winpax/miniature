@@ -1,10 +1,5 @@
 #include <stddef.h>
 
-int _fltused = 0;
-
-extern __chkstk(size_t ptr) {
-}
-
 // The following is borrowed from minwindef.h
 typedef unsigned short WORD;
 

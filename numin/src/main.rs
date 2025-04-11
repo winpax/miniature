@@ -8,9 +8,11 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use common::exe_type::ExeType;
 use numin::{Executable, error, shim::ShimArgs};
+use widestring::WideCString;
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Clone, Parser)]
 struct Args {
     #[clap(help = "Name of the shim")]
     name: String,
@@ -24,6 +26,9 @@ struct Args {
         value_name = "ARGS"
     )]
     shim_args: Vec<String>,
+
+    #[clap(help = "Do not set the subsystem of the shim", long, short)]
+    no_subsystem: bool,
 }
 
 impl From<Args> for ShimArgs {
@@ -43,7 +48,21 @@ fn main() -> error::Result<()> {
 
     let exe = Executable::default();
     let shim = exe.save(&dest_path)?;
-    shim.set_resource(args.into())?;
+    shim.set_resource(args.clone().into())?;
+
+    let wide_path = WideCString::from_os_str(args.target.as_os_str())?;
+    let exe_type = ExeType::from_path(&wide_path).expect("Failed to get the executable type");
+
+    if exe_type.is_windows() {
+        println!("Target executable is a GUI application");
+        if args.no_subsystem {
+            println!("NOT setting the subsystem to Windows GUI, as requested");
+        } else {
+            println!("Setting the subsystem to Windows GUI");
+            let subsystem = numin::subsystem::Subsystem::Windows;
+            subsystem.encode(dest_path)?;
+        }
+    }
 
     Ok(())
 }

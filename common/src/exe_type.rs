@@ -1,3 +1,4 @@
+use alloc::string::String;
 use widestring::WideCStr;
 
 use crate::interop::{hiword, loword};
@@ -5,6 +6,33 @@ use crate::interop::{hiword, loword};
 pub struct ExeType {
     hiword: u16,
     loword: u16,
+}
+
+impl core::fmt::Debug for ExeType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fn format_bytes(bytes: &[u8]) -> String {
+            bytes.iter().map(|byte| char::from(*byte)).collect()
+        }
+
+        let formatted_hiword = format_bytes(&self.hiword.to_le_bytes());
+        let formatted_loword = format_bytes(&self.loword.to_le_bytes());
+
+        let mut debug_struct = f.debug_struct("ExeType");
+
+        if self.hiword == 0 {
+            debug_struct.field("hiword", &None::<String>);
+        } else {
+            debug_struct.field("hiword", &formatted_hiword);
+        }
+
+        if self.loword == 0 {
+            debug_struct.field("loword", &None::<String>);
+        } else {
+            debug_struct.field("loword", &formatted_loword);
+        }
+
+        debug_struct.finish()
+    }
 }
 
 impl ExeType {
