@@ -38,6 +38,10 @@ impl ExeType {
     }
 
     pub fn windows_app(&self) -> bool {
+        let is_msdos = self.is_msdos();
+        let is_console = self.is_console();
+        let is_windows = self.is_windows();
+
         self.file_info != 0
     }
 

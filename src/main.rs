@@ -45,8 +45,8 @@ unsafe fn main() -> windows::core::Result<()> {
     unsafe {
         let resource = resource::ChildResource::load();
 
-        if !exe_type::ExeType::from_path(WideCString::from_ustr(resource.path.as_ustr()).unwrap())
-            .windows_app()
+        if exe_type::ExeType::from_path(WideCString::from_ustr(resource.path.as_ustr()).unwrap())
+            .is_windows()
         {
             windows::Win32::System::Console::FreeConsole()?;
         }
