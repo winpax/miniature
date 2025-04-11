@@ -3,7 +3,7 @@ fn main() {
     build.file("interop/macros.c");
 
     #[cfg(feature = "crt_functions")]
-    build.include("interop/crt_fns.c");
+    build.file("interop/crt_fns.c");
 
     build.compile("interop");
     println!("cargo:rerun-if-changed=interop.c");
