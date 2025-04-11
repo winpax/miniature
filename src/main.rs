@@ -48,9 +48,13 @@ unsafe fn main() -> windows::core::Result<()> {
 
         if let Some(exe_type) =
             ExeType::from_path(WideCString::from_ustr_unchecked(resource.path.as_ustr()))
-            && exe_type.is_windows()
         {
-            windows::Win32::System::Console::FreeConsole()?;
+            if exe_type.is_windows() {
+                windows::Win32::System::Console::FreeConsole()?;
+            }
+        } else {
+            error::log_error("Shim: Could not determine executable type.\n")?;
+            error::ExitCode::set_reason(error::ExitCode::ChildError);
         }
 
         let child = job::Job::new()?;

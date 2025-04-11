@@ -11,6 +11,7 @@ fn handle_error<T, E: Error>(result: Result<T, E>) -> T {
 }
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=MINIATURE_EXE_PATH");
     if let Ok(executable_path) = std::env::var("MINIATURE_EXE_PATH") {
         let path = PathBuf::from(executable_path);
         if !path.exists() {
