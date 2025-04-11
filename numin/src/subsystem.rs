@@ -28,12 +28,15 @@ impl Subsystem {
     /// Writing to the file may fail.
     /// See [`std::io::Error`] for more details.
     pub fn encode(self, path: PathBuf) -> std::io::Result<()> {
+        const PE_HEADER_OFFSET_LOCATION: u64 = 0x3C;
+        const HEADER_SUBSYSTEM_OFFSET: u64 = 0x5C;
+
         let mut file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .open(path)?;
 
-        file.seek(std::io::SeekFrom::Start(0x3C))?;
+        file.seek(std::io::SeekFrom::Start(PE_HEADER_OFFSET_LOCATION))?;
         let pe_offset = {
             let mut buf = [0; 4];
             file.read_exact(&mut buf)?;
@@ -42,10 +45,9 @@ impl Subsystem {
 
         let file_header_offset = file.seek(std::io::SeekFrom::Start(u64::from(pe_offset)))?;
 
-        // Not sure the point of this call
-        // reader.seek(std::io::SeekFrom::Current(18))?;
-
-        file.seek(std::io::SeekFrom::Start(file_header_offset + 0x5C))?;
+        file.seek(std::io::SeekFrom::Start(
+            file_header_offset + HEADER_SUBSYSTEM_OFFSET,
+        ))?;
 
         file.write_all(&self.code().to_le_bytes())?;
 
