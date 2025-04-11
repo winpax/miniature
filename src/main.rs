@@ -19,6 +19,7 @@ use error::{ExitCode, handle_windows_error};
 
 mod allocator;
 mod error;
+mod exe_type;
 mod interop;
 mod job;
 mod resource;
@@ -44,7 +45,9 @@ unsafe fn main() -> windows::core::Result<()> {
     unsafe {
         let resource = resource::ChildResource::load();
 
-        if !interop::is_windows_app(WideCString::from_ustr(resource.path.as_ustr()).unwrap()) {
+        if !exe_type::ExeType::from_path(WideCString::from_ustr(resource.path.as_ustr()).unwrap())
+            .windows_app()
+        {
             windows::Win32::System::Console::FreeConsole()?;
         }
 

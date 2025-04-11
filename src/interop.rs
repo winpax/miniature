@@ -1,8 +1,5 @@
 //! Both functions in this file are ported almost directly from the original <https://github.com/71/scoop-better-shimexe/blob/master/shim.c>
 
-use widestring::WideCStr;
-use windows::core::PCWSTR;
-
 mod externfns {
     trait Float:
         Copy
@@ -58,24 +55,9 @@ mod externfns {
     }
 }
 
-pub unsafe fn is_windows_app(path: impl AsRef<WideCStr>) -> bool {
-    use windows::Win32::{
-        Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
-        UI::Shell::{SHFILEINFOW, SHGFI_EXETYPE, SHGetFileInfoW},
-    };
-    let mut file_info = SHFILEINFOW::default();
-
-    let file_info = unsafe {
-        SHGetFileInfoW(
-            PCWSTR::from_raw(path.as_ref().as_ptr()),
-            FILE_FLAGS_AND_ATTRIBUTES::default(),
-            Some(&mut file_info),
-            core::mem::size_of::<SHFILEINFOW>() as u32,
-            SHGFI_EXETYPE,
-        )
-    };
-
-    file_info != 0
+unsafe extern "C" {
+    pub fn loword(dword: usize) -> u16;
+    pub fn hiword(dword: usize) -> u16;
 }
 
 pub unsafe fn compute_program_length(commandline: &[u16]) -> usize {

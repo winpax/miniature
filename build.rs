@@ -6,14 +6,15 @@ fn main() {
     println!("cargo:rustc-link-arg=/ENTRY:entry");
     println!("cargo:rustc-link-arg=/nodefaultlib");
 
-    cc::Build::new().file("./interop.c").compile("interop");
+    cc::Build::new().file("interop.c").compile("interop");
+    println!("cargo:rerun-if-changed=interop.c");
 
     #[cfg(debug_assertions)]
     {
         use which::which;
 
-        let sfsu_path = which("echo").expect("echo not found");
-        let path = sfsu_path.display().to_string().replace("\\", "\\\\");
+        let exe_path = which("echo").expect("echo not found");
+        let path = exe_path.display().to_string().replace("\\", "\\\\");
 
         let mut res = winres::WindowsResource::new();
         res.append_rc_content(&format!(
