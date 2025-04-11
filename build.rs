@@ -6,9 +6,6 @@ fn main() {
     println!("cargo:rustc-link-arg=/ENTRY:entry");
     println!("cargo:rustc-link-arg=/nodefaultlib");
 
-    cc::Build::new().file("interop.c").compile("interop");
-    println!("cargo:rerun-if-changed=interop.c");
-
     #[cfg(debug_assertions)]
     {
         let exe_path =

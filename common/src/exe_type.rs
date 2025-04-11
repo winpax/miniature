@@ -19,6 +19,7 @@ impl ExeType {
 
         let mut file_info = SHFILEINFOW::default();
 
+        #[allow(clippy::cast_possible_truncation)]
         let file_info = unsafe {
             SHGetFileInfoW(
                 PCWSTR::from_raw(path.as_ref().as_ptr()),
@@ -40,16 +41,19 @@ impl ExeType {
     }
 
     #[allow(unused)]
+    #[must_use]
     pub fn is_msdos(&self) -> bool {
         self.loword == MZ
     }
 
     #[allow(unused)]
+    #[must_use]
     pub fn is_console(&self) -> bool {
         self.loword == PE && self.hiword == 0
     }
 
     #[allow(unused)]
+    #[must_use]
     pub fn is_windows(&self) -> bool {
         (self.loword == PE || self.loword == NE) && self.hiword != 0
     }

@@ -15,13 +15,11 @@ use windows::{
     core::BOOL,
 };
 
+use common::exe_type::ExeType;
 use error::{ExitCode, handle_windows_error};
-use exe_type::ExeType;
 
 mod allocator;
 mod error;
-mod exe_type;
-mod interop;
 mod job;
 mod resource;
 
