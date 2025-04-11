@@ -46,6 +46,7 @@ pub struct Shim {
 
 impl Shim {
     #[must_use]
+    /// Get the path to the shim executable.
     pub fn path(&self) -> &Path {
         &self.path
     }
