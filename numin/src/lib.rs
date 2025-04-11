@@ -11,6 +11,7 @@
 pub mod error;
 mod executable;
 pub(crate) mod interop;
+pub mod subsystem;
 mod table;
 
 pub use executable::*;

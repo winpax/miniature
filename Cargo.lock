@@ -785,6 +785,7 @@ name = "numin"
 version = "0.1.2"
 dependencies = [
  "clap",
+ "common",
  "reqwest",
  "thiserror",
  "widestring",
