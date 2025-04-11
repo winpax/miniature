@@ -7,49 +7,54 @@ use windows::Win32::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExitCodeReason {
-    Unknown,
+pub enum ExitCode {
+    Unknown(u32),
     ChildError,
     ProcessError,
+    Panic,
 }
-
-impl ExitCodeReason {
-    pub const fn message(&self) -> Option<&str> {
-        match self {
-            ExitCodeReason::Unknown => Some("Shim: Unknown error\n"),
-            ExitCodeReason::ProcessError => Some("Shim: Process error\n"),
-            ExitCodeReason::ChildError => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ExitCode(u32);
 
 impl ExitCode {
-    pub fn code() -> u32 {
-        unsafe { EXIT_CODE.0 }
+    pub const fn message(self) -> Option<&'static str> {
+        match self {
+            ExitCode::Unknown(_) => Some("Shim: Unknown error\n"),
+            ExitCode::ProcessError => Some("Shim: Process error\n"),
+            ExitCode::ChildError | ExitCode::Panic => None,
+        }
     }
 
-    pub fn reason() -> ExitCodeReason {
-        unsafe { EXIT_CODE_REASON }
+    pub const fn code(self) -> u32 {
+        match self {
+            ExitCode::Unknown(code) => code,
+            ExitCode::ProcessError => 2,
+            ExitCode::ChildError => 3,
+            ExitCode::Panic => u32::from_le_bytes(*b"PNCK"),
+        }
+    }
+
+    pub fn get_code() -> u32 {
+        unsafe { EXIT_CODE.code() }
+    }
+
+    pub fn reason() -> ExitCode {
+        unsafe { EXIT_CODE }
     }
 
     pub fn set_code(code: u32) {
         unsafe {
-            EXIT_CODE.0 = code;
+            EXIT_CODE = ExitCode::Unknown(code);
         }
     }
 
-    pub fn set_reason(reason: ExitCodeReason) {
+    /// This will set the exit code reason to the given value, and set the code to the reason's code
+    pub fn set_reason(reason: ExitCode) {
         unsafe {
-            EXIT_CODE_REASON = reason;
+            EXIT_CODE = reason;
         }
     }
 }
 
-static mut EXIT_CODE_REASON: ExitCodeReason = ExitCodeReason::Unknown;
-static mut EXIT_CODE: ExitCode = ExitCode(0);
+static mut EXIT_CODE: ExitCode = ExitCode::Unknown(0);
 
 unsafe fn get_stdout() -> windows::core::Result<HANDLE> {
     unsafe { Console::GetStdHandle(Console::STD_OUTPUT_HANDLE) }
@@ -83,7 +88,7 @@ pub fn log_error(message: impl AsRef<str>) -> windows::core::Result<()> {
 }
 
 pub fn exit_immediately() -> ! {
-    unsafe { windows::Win32::System::Threading::ExitProcess(ExitCode::code()) }
+    unsafe { windows::Win32::System::Threading::ExitProcess(ExitCode::get_code()) }
 }
 
 pub fn handle_windows_error(error: WIN32_ERROR) -> ! {

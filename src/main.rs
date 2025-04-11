@@ -54,7 +54,7 @@ unsafe fn main() -> windows::core::Result<()> {
 
         ExitCode::set_code(exit_code);
         if exit_code != 0 {
-            ExitCode::set_reason(error::ExitCodeReason::ChildError);
+            ExitCode::set_reason(error::ExitCode::ChildError);
         }
 
         Ok(())
@@ -66,7 +66,7 @@ unsafe fn main() -> windows::core::Result<()> {
 extern "C" fn entry() -> ! {
     match unsafe { main() } {
         Ok(()) => {
-            if ExitCode::code() != 0 {
+            if ExitCode::get_code() != 0 {
                 let last_error = unsafe { GetLastError() };
                 if last_error.0 != 0 {
                     handle_windows_error(last_error);
@@ -79,10 +79,9 @@ extern "C" fn entry() -> ! {
         #[allow(clippy::cast_sign_loss)]
         Err(e) => {
             _ = error::log_error(e.message());
-            ExitCode::set_code(e.code().0 as u32);
-            ExitCode::set_reason(error::ExitCodeReason::Unknown);
+            ExitCode::set_reason(error::ExitCode::Unknown(e.code().0 as u32));
         }
     }
 
-    unsafe { ExitProcess(ExitCode::code()) }
+    unsafe { ExitProcess(ExitCode::get_code()) }
 }

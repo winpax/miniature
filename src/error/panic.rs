@@ -1,8 +1,8 @@
-use super::exit_immediately;
+use super::{ExitCode, exit_immediately};
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
     // Note that this function is never called, because panics immediately abort the process.
-    // exit_immediately()
-    loop {}
+    ExitCode::set_reason(ExitCode::Panic);
+    exit_immediately()
 }
