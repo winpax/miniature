@@ -1,4 +1,9 @@
 [toolchain]
 channel = "nightly-2025-03-28"
-components = ["rust-src"]
-profile = "default"
+components = ["rust-src", "rustfmt", "clippy"]
+profile = "minimal"
+targets = [
+    "x86_64-pc-windows-msvc",
+    "i686-pc-windows-msvc",
+    "aarch64-pc-windows-msvc",
+]

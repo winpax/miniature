@@ -6,6 +6,9 @@ on:
 
 jobs:
   publish:
+    strategy:
+      matrix:
+        arch: [aarch64, i686, x86_64]
     name: Publish
     runs-on: windows-latest
 
@@ -13,18 +16,18 @@ jobs:
       - uses: actions/checkout@v4.2.2
 
       - name: Build miniature
-        run: cargo b --release --locked
+        run: cargo b --release --locked --target ${{ matrix.arch }}-pc-windows-msvc
 
       - name: Build Numin
         env:
-          MINIATURE_EXE_PATH: ${{ github.workspace }}target/x86_64-pc-windows-msvc/miniature.exe
-        run: cargo b --release --locked -p numin
+          MINIATURE_EXE_PATH: ${{ github.workspace }}target/${{ matrix.arch }}-pc-windows-msvc/miniature.exe
+        run: cargo b --release --locked -p numin --target ${{ matrix.arch }}-pc-windows-msvc
 
       - name: Upload & Publish
         uses: softprops/action-gh-release@v2.2.1
         with:
           files: |
-            target/x86_64-pc-windows-msvc/*.exe
+            target/${{ matrix.arch }}-pc-windows-msvc/*.exe
 
       - name: VirusTotal Scan
         continue-on-error: true
