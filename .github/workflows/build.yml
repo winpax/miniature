@@ -9,7 +9,8 @@ on:
 name: "Build"
 
 jobs:
-  build-shim:
+  build:
+    name: Build for ${{ matrix.arch }}
     strategy:
       matrix:
         arch:
@@ -24,18 +25,8 @@ jobs:
 
       - name: Build miniature
         run: cargo build --release --locked --target ${{ matrix.arch }}-pc-windows-msvc
-  build-numin:
-    strategy:
-      matrix:
-        arch:
-          - x86_64
-          - aarch64
-          - i686
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2.7.8
 
       - name: Build Numin
+        env:
+          MINIATURE_EXE_PATH: ${{ github.workspace }}target/${{ matrix.arch }}-pc-windows-msvc/miniature.exe
         run: cargo build --release --locked --target ${{ matrix.arch }}-pc-windows-msvc -p numin
