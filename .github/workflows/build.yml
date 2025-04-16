@@ -10,6 +10,12 @@ name: "Build"
 
 jobs:
   build-shim:
+    strategy:
+      matrix:
+        arch:
+          - x86_64
+          - aarch64
+          # - i686
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,8 +23,14 @@ jobs:
         uses: Swatinem/rust-cache@v2.7.8
 
       - name: Build miniature
-        run: cargo build -r
+        run: cargo build --release --locked --target ${{ matrix.arch }}-pc-windows-msvc
   build-numin:
+    strategy:
+      matrix:
+        arch:
+          - x86_64
+          - aarch64
+          - i686
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,4 +38,4 @@ jobs:
         uses: Swatinem/rust-cache@v2.7.8
 
       - name: Build Numin
-        run: cargo build -r -p numin
+        run: cargo build --release --locked --target ${{ matrix.arch }}-pc-windows-msvc -p numin
