@@ -23,20 +23,17 @@ jobs:
 
       - name: Build Numin
         env:
-          MINIATURE_EXE_PATH: ${{ github.workspace }}target/${{ matrix.arch }}-pc-windows-msvc/release/miniature.exe
+          MINIATURE_EXE_PATH: ${{ github.workspace }}/target/${{ matrix.arch }}-pc-windows-msvc/release/miniature.exe
         run: cargo b --release --locked -p numin --target ${{ matrix.arch }}-pc-windows-msvc
+
+      - name: Rename build artifacts
+        run: |
+          mkdir artifacts
+          mv target/${{ matrix.arch }}-pc-windows-msvc/release/miniature.exe artifacts/miniature-${{ matrix.arch }}.exe
+          mv target/${{ matrix.arch }}-pc-windows-msvc/release/numin.exe artifacts/numin-${{ matrix.arch }}.exe
 
       - name: Upload & Publish
         uses: softprops/action-gh-release@v2.2.1
         with:
           files: |
-            target/${{ matrix.arch }}-pc-windows-msvc/*.exe
-
-      - name: VirusTotal Scan
-        continue-on-error: true
-        uses: crazy-max/ghaction-virustotal@v4
-        with:
-          update_release_body: true
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          files: |
-            .exe$
+            artifacts/*.exe
