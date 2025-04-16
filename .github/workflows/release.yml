@@ -23,7 +23,7 @@ jobs:
 
       - name: Build Numin
         env:
-          MINIATURE_EXE_PATH: ${{ github.workspace }}target/${{ matrix.arch }}-pc-windows-msvc/miniature.exe
+          MINIATURE_EXE_PATH: ${{ github.workspace }}target/${{ matrix.arch }}-pc-windows-msvc/release/miniature.exe
         run: cargo b --release --locked -p numin --target ${{ matrix.arch }}-pc-windows-msvc
 
       - name: Upload & Publish
