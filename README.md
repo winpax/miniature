@@ -2,7 +2,7 @@
 
 A **tiny** Scoop shim alternative, written in Rust.
 
-Clocks in at about 14KB, compared to the current [better-shim-exe](https://github.com/kiennq/scoop-better-shimexe), which is about 133KB.
+Clocks in at about 13KB, compared to the current [better-shim-exe](https://github.com/kiennq/scoop-better-shimexe), which is about 133KB.
 That's about 10% the size.
 
 miniature doesn't rely on any standard libraries from Rust or C, or Microsoft's C runtime,
