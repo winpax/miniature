@@ -2,7 +2,6 @@
 #![allow(clippy::cast_possible_truncation)]
 #![no_main]
 #![no_std]
-#![feature(let_chains)]
 #![feature(rustc_private)]
 
 extern crate compiler_builtins_but_not_named_that;
