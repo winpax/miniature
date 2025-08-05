@@ -94,7 +94,7 @@ impl RunningJob {
             WaitForSingleObject(self.process_info.process_handle(), INFINITE);
 
             let mut exit_code = 0u32;
-            GetExitCodeProcess(self.process_info.process_handle(), &mut exit_code)?;
+            GetExitCodeProcess(self.process_info.process_handle(), &raw mut exit_code)?;
 
             CloseHandle(self.process_info.process_handle())?;
             CloseHandle(self.handle.0)?;

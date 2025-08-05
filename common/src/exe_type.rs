@@ -52,7 +52,7 @@ impl ExeType {
             SHGetFileInfoW(
                 PCWSTR::from_raw(path.as_ref().as_ptr()),
                 FILE_FLAGS_AND_ATTRIBUTES::default(),
-                Some(&mut file_info),
+                Some(&raw mut file_info),
                 core::mem::size_of::<SHFILEINFOW>() as u32,
                 SHGFI_EXETYPE,
             )
