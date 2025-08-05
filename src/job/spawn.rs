@@ -38,7 +38,7 @@ impl Spawn for ChildResource {
         let mut process_info = PROCESS_INFORMATION::default();
         let startup_information = {
             let mut info = STARTUPINFOW::default();
-            unsafe { GetStartupInfoW(&mut info) };
+            unsafe { GetStartupInfoW(&raw mut info) };
             info
         };
 
@@ -55,8 +55,8 @@ impl Spawn for ChildResource {
                 CREATE_SUSPENDED,
                 None,
                 None,
-                &startup_information,
-                &mut process_info,
+                &raw const startup_information,
+                &raw mut process_info,
             )?;
         };
 
@@ -86,7 +86,7 @@ impl Spawn for ChildResource {
             ..Default::default()
         };
 
-        if let Err(err) = unsafe { ShellExecuteExW(&mut execution_info) } {
+        if let Err(err) = unsafe { ShellExecuteExW(&raw mut execution_info) } {
             let mut output = String::from("Shim: Unable to create elevated process.\n");
             output.push_str("\t\t- Failed with error: ");
             output.push_str(&err.message());
