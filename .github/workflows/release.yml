@@ -14,7 +14,7 @@ jobs:
         arch:
           - x86_64
           - aarch64
-          # - i686
+          - i686
     name: Publish
     runs-on: windows-latest
 
