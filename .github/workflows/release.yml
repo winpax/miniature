@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
 
       - name: Build miniature
         run: cargo b --release --locked --target ${{ matrix.arch }}-pc-windows-msvc
