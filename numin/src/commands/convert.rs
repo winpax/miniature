@@ -40,9 +40,10 @@ impl Args {
         let pb = indicatif::ProgressBar::new(found_shims.len() as u64).with_style(style);
 
         for shim in found_shims {
+            println!("{}", shim.display());
             pb.set_message(format!("Converting {}", shim.display()));
 
-            let mut fp = File::create(&shim)?;
+            let mut fp = File::open(&shim)?;
 
             let shim_data = scoop_shim::from_reader(&mut fp)?;
             let dest_path = shim.with_extension("exe");
