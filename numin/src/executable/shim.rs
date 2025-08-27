@@ -38,6 +38,15 @@ impl ShimArgs {
     }
 }
 
+impl From<scoop_shim::Shim> for ShimArgs {
+    fn from(value: scoop_shim::Shim) -> Self {
+        Self {
+            target: value.path().to_path_buf(),
+            args: value.args().to_vec(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 /// Locally saved shim executable ready to be updated with the given arguments.
 pub struct Shim {

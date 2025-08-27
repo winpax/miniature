@@ -16,6 +16,14 @@ use crate::commands::Commands;
 struct Args {
     #[clap(subcommand)]
     command: Commands,
+
+    #[clap(
+        global = true,
+        help = "Do not set the subsystem of the shim",
+        long,
+        short
+    )]
+    no_subsystem: bool,
 }
 
 fn main() -> error::Result<()> {
@@ -23,6 +31,7 @@ fn main() -> error::Result<()> {
 
     match args.command {
         Commands::Create(args) => args.run()?,
+        Commands::Convert(args) => args.run()?,
     }
 
     Ok(())
