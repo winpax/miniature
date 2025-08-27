@@ -40,8 +40,10 @@ fn main() {
             println!("cargo::warning=Downloading latest build in release mode");
         }
 
+        let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH")
+            .unwrap_or_else(|_| std::env::consts::ARCH.to_string());
         let arch = {
-            match std::env::consts::ARCH {
+            match target_arch.as_str() {
                 "x86" => "i686",
                 "x86_64" => "x86_64",
                 "aarch64" => "aarch64",
