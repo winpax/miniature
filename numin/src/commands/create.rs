@@ -31,11 +31,11 @@ impl From<Args> for ShimArgs {
 
 impl Args {
     pub fn run(&self) -> error::Result<()> {
-        if matches!(PathBuf::from(&self.name).try_exists(), Ok(true)) {
+        let dest_path = PathBuf::from(&self.name).with_extension("exe");
+
+        if matches!(dest_path.try_exists(), Ok(true)) {
             Err(error::Error::AlreadyExists)?;
         }
-
-        let dest_path = PathBuf::from(&self.name).with_extension("exe");
 
         Executable::create_and_update(self.clone().into(), dest_path, self.no_subsystem)?;
 
