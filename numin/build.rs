@@ -40,15 +40,31 @@ fn main() {
             println!("cargo::warning=Downloading latest build in release mode");
         }
 
-        let download_url = concat!(
-            "https://github.com/winpax/miniature/releases/download/v",
+        let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH")
+            .unwrap_or_else(|_| std::env::consts::ARCH.to_string());
+        let arch = {
+            match target_arch.as_str() {
+                "x86" => "i686",
+                "x86_64" => "x86_64",
+                "aarch64" => "aarch64",
+                _ => {
+                    println!("cargo::error=Unsupported architecture");
+                    return;
+                }
+            }
+        };
+
+        let bin_name = format!("miniature-{arch}.exe");
+
+        let download_url = format!(
+            "https://github.com/winpax/miniature/releases/download/v{}/{}",
             env!("CARGO_PKG_VERSION"),
-            "/miniature.exe"
+            bin_name
         );
 
         let resp = handle_error(reqwest::blocking::get(download_url));
         if !resp.status().is_success() {
-            println!("cargo::error=Failed to download miniature.exe");
+            println!("cargo::error=Failed to download {}", bin_name);
             println!("cargo::error={}", resp.status());
         } else {
             let binary_data = handle_error(resp.bytes());

@@ -2,7 +2,9 @@ pub mod shim;
 
 use std::{io::Write, path::Path};
 
+use common::exe_type::ExeType;
 use shim::Shim;
+use widestring::WideCString;
 
 use crate::error;
 
@@ -38,5 +40,31 @@ impl Executable {
         file.write_all(self.0)?;
 
         Ok(Shim { path })
+    }
+
+    pub fn create_and_update(
+        args: shim::ShimArgs,
+        dest_path: impl AsRef<Path>,
+        no_subsystem: bool,
+    ) -> error::Result<()> {
+        let exe = Executable::default();
+        let shim = exe.save(&dest_path)?;
+        shim.set_resource(args.clone())?;
+
+        let wide_path = WideCString::from_os_str(args.target.as_os_str())?;
+        let exe_type = ExeType::from_path(&wide_path).expect("Failed to get the executable type");
+
+        if exe_type.is_windows() {
+            println!("Target executable is a GUI application");
+            if no_subsystem {
+                println!("NOT setting the subsystem to Windows GUI, as requested");
+            } else {
+                println!("Setting the subsystem to Windows GUI");
+                let subsystem = crate::subsystem::Subsystem::Windows;
+                subsystem.encode(dest_path.as_ref().to_owned())?;
+            }
+        }
+
+        Ok(())
     }
 }
