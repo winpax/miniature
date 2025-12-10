@@ -12,7 +12,7 @@ std = []
 widestring = { version = "1.2.0", default-features = false, features = [
     "alloc",
 ] }
-windows = { version = "0.61.1", default-features = false, features = [
+windows = { version = "0.62.0", default-features = false, features = [
     "Win32_Storage_FileSystem",
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
