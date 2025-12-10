@@ -25,7 +25,7 @@ compiler_builtins_but_not_named_that = { version = "0.1", features = [
     "mem",
 ], package = "compiler_builtins" }
 widestring = { version = "1.2", default-features = false, features = ["alloc"] }
-windows = { version = "0.61", default-features = false, features = [
+windows = { version = "0.62", default-features = false, features = [
     "Win32_Security",
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
