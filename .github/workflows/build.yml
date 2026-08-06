@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v2.8.1
+        uses: Swatinem/rust-cache@v2.9.2
 
       - name: Build miniature
         run: cargo build --release --locked --target ${{ matrix.arch }}-pc-windows-msvc
